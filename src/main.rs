@@ -92,17 +92,17 @@ fn pretty_size(size: u64) -> String {
     let (size, symbol) = if size < KIBIBYTE {
         (size, "B")
     } else if size < MEBIBYTE {
-        (size / KIBIBYTE, "KB")
+        (size / KIBIBYTE, "KiB")
     } else if size < GIBIBYTE {
-        (size / MEBIBYTE, "MB")
+        (size / MEBIBYTE, "MiB")
     } else if size < TEBIBYTE {
-        (size / GIBIBYTE, "GB")
+        (size / GIBIBYTE, "GiB")
     } else if size < PEBIBYTE {
-        (size / TEBIBYTE, "TB")
+        (size / TEBIBYTE, "TiB")
     } else if size < EXBIBYTE {
-        (size / PEBIBYTE, "PB")
+        (size / PEBIBYTE, "PiB")
     } else {
-        (size / EXBIBYTE, "EB")
+        (size / EXBIBYTE, "EiB")
     };
 
     format!("{:.1}{}", size, symbol)
