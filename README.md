@@ -9,7 +9,9 @@ Supports:
 - Cargo projects
 - Node projects
 - Unity Projects
+- SBT projects
 - Haskell Stack projects
+- Unity projects
 
 ## Roadmap
 

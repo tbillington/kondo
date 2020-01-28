@@ -7,6 +7,7 @@ const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
 const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
+const FILE_SBT_BUILD: &str = "build.sbt";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -20,6 +21,10 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Builds",
 ];
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
+const PROJECT_SBT_DIRS: [&str; 2] = [
+    "target",
+    "project/target",
+];
 
 #[derive(Clone, Debug)]
 enum ProjectType {
@@ -27,6 +32,7 @@ enum ProjectType {
     Node,
     Unity,
     HaskellStack,
+    Sbt,
 }
 
 #[derive(Clone, Debug)]
@@ -57,6 +63,7 @@ fn scan<P: AsRef<path::Path>>(path: &P) -> Vec<ProjectDir> {
                         Some(FILE_PACKAGE_JSON) => ProjectType::Node,
                         Some(FILE_ASSEMBLY_CSHARP) => ProjectType::Unity,
                         Some(FILE_STACK_HASKELL) => ProjectType::HaskellStack,
+                        Some(FILE_SBT_BUILD) => ProjectType::Sbt,
                         _ => return None,
                     },
                     path: entry
@@ -96,17 +103,17 @@ fn pretty_size(size: u64) -> String {
     let (size, symbol) = if size < KIBIBYTE {
         (size, "B")
     } else if size < MEBIBYTE {
-        (size / KIBIBYTE, "KB")
+        (size / KIBIBYTE, "KiB")
     } else if size < GIBIBYTE {
-        (size / MEBIBYTE, "MB")
+        (size / MEBIBYTE, "MiB")
     } else if size < TEBIBYTE {
-        (size / GIBIBYTE, "GB")
+        (size / GIBIBYTE, "GiB")
     } else if size < PEBIBYTE {
-        (size / TEBIBYTE, "TB")
+        (size / TEBIBYTE, "TiB")
     } else if size < EXBIBYTE {
-        (size / PEBIBYTE, "PB")
+        (size / PEBIBYTE, "PiB")
     } else {
-        (size / EXBIBYTE, "EB")
+        (size / EXBIBYTE, "EiB")
     };
 
     format!("{:.1}{}", size, symbol)
@@ -168,6 +175,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ProjectType::Node => ("Node", PROJECT_NODE_DIRS.iter()),
                 ProjectType::Unity => ("Unity", PROJECT_UNITY_DIRS.iter()),
                 ProjectType::HaskellStack => ("Stack", PROJECT_STACK_DIRS.iter()),
+                ProjectType::Sbt => ("SBT", PROJECT_SBT_DIRS.iter()),
             };
 
             let size = dirs.map(|p| dir_size(&path.join(p))).sum();
@@ -193,7 +201,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     project_sizes.sort_unstable_by_key(|p| p.0);
 
     for (size, project) in project_sizes.iter() {
-        writeln!(&mut write_handle, "{:>9} {}", pretty_size(*size), project)?;
+        writeln!(&mut write_handle, "{:>10} {}", pretty_size(*size), project)?;
     }
 
     writeln!(&mut write_handle, "{} possible savings", pretty_size(total))?;
