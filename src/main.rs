@@ -6,6 +6,7 @@ const SYMLINK_FOLLOW: bool = true;
 const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
 const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
+const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
@@ -19,6 +20,7 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Build",
     "Builds",
 ];
+const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = [
     "target",
     "project/target",
@@ -29,6 +31,7 @@ enum ProjectType {
     Cargo,
     Node,
     Unity,
+    HaskellStack,
     Sbt,
 }
 
@@ -59,6 +62,7 @@ fn scan<P: AsRef<path::Path>>(path: &P) -> Vec<ProjectDir> {
                         Some(FILE_CARGO_TOML) => ProjectType::Cargo,
                         Some(FILE_PACKAGE_JSON) => ProjectType::Node,
                         Some(FILE_ASSEMBLY_CSHARP) => ProjectType::Unity,
+                        Some(FILE_STACK_HASKELL) => ProjectType::HaskellStack,
                         Some(FILE_SBT_BUILD) => ProjectType::Sbt,
                         _ => return None,
                     },
@@ -170,6 +174,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ProjectType::Cargo => ("Cargo", PROJECT_CARGO_DIRS.iter()),
                 ProjectType::Node => ("Node", PROJECT_NODE_DIRS.iter()),
                 ProjectType::Unity => ("Unity", PROJECT_UNITY_DIRS.iter()),
+                ProjectType::HaskellStack => ("Stack", PROJECT_STACK_DIRS.iter()),
                 ProjectType::Sbt => ("SBT", PROJECT_SBT_DIRS.iter()),
             };
 
