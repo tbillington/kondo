@@ -1,17 +1,18 @@
 # Kondo 🧹
 
+![Kondo Tests](https://github.com/tbillington/kondo/workflows/Kondo%20Tests/badge.svg) ![Kondo Lints](https://github.com/tbillington/kondo/workflows/Kondo%20Lints/badge.svg)
+
 Cleans unneeded directories and files from your system.
 
 It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects. Currently `kondo` doesn't actually delete any files.
 
 Supports:
 
-- Cargo projects
-- Node projects
-- Unity Projects
-- SBT projects
-- Haskell Stack projects
-- Unity projects
+- [Cargo](https://doc.rust-lang.org/cargo/) projects
+- [Node](https://nodejs.org/) projects
+- [Unity](https://unity.com/) Projects
+- [SBT](https://www.scala-sbt.org/) projects
+- [Haskell Stack](https://docs.haskellstack.org/) projects
 
 ## Roadmap
 
