@@ -188,7 +188,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     project_sizes.sort_unstable_by_key(|p| p.0);
 
     for (size, project) in project_sizes.iter() {
-        writeln!(&mut write_handle, "{:>9} {}", pretty_size(*size), project)?;
+        writeln!(&mut write_handle, "{:>10} {}", pretty_size(*size), project)?;
     }
 
     writeln!(&mut write_handle, "{} possible savings", pretty_size(total))?;
