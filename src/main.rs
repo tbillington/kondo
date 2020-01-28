@@ -21,10 +21,7 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Builds",
 ];
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
-const PROJECT_SBT_DIRS: [&str; 2] = [
-    "target",
-    "project/target",
-];
+const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 
 #[derive(Clone, Debug)]
 enum ProjectType {
