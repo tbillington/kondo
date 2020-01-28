@@ -47,3 +47,7 @@ Calculating savings per project
     4.0GB rust-analyzer (Cargo) C:\Users\Trent\code\rust-analyzer
 9.5GB possible savings
 ```
+
+## Similar Projects
+
+- [The Tin Summer](https://github.com/vmchale/tin-summer)
