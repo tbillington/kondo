@@ -6,6 +6,7 @@ const SYMLINK_FOLLOW: bool = true;
 const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
 const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
+const FILE_SBT_BUILD: &str = "build.sbt";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -18,12 +19,17 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Build",
     "Builds",
 ];
+const PROJECT_SBT_DIRS: [&str; 2] = [
+    "target",
+    "project/target",
+];
 
 #[derive(Clone, Debug)]
 enum ProjectType {
     Cargo,
     Node,
     Unity,
+    Sbt,
 }
 
 #[derive(Clone, Debug)]
@@ -53,6 +59,7 @@ fn scan<P: AsRef<path::Path>>(path: &P) -> Vec<ProjectDir> {
                         Some(FILE_CARGO_TOML) => ProjectType::Cargo,
                         Some(FILE_PACKAGE_JSON) => ProjectType::Node,
                         Some(FILE_ASSEMBLY_CSHARP) => ProjectType::Unity,
+                        Some(FILE_SBT_BUILD) => ProjectType::Sbt,
                         _ => return None,
                     },
                     path: entry
@@ -163,6 +170,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ProjectType::Cargo => ("Cargo", PROJECT_CARGO_DIRS.iter()),
                 ProjectType::Node => ("Node", PROJECT_NODE_DIRS.iter()),
                 ProjectType::Unity => ("Unity", PROJECT_UNITY_DIRS.iter()),
+                ProjectType::Sbt => ("SBT", PROJECT_SBT_DIRS.iter()),
             };
 
             let size = dirs.map(|p| dir_size(&path.join(p))).sum();
