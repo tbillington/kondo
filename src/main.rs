@@ -183,28 +183,22 @@ fn dir_size(path: &path::Path) -> u64 {
 }
 
 fn pretty_size(size: u64) -> String {
-    let size = size as f64;
-    const KIBIBYTE: f64 = 1024.0;
-    const MEBIBYTE: f64 = 1_048_576.0;
-    const GIBIBYTE: f64 = 1_073_741_824.0;
-    const TEBIBYTE: f64 = 1_099_511_627_776.0;
-    const PEBIBYTE: f64 = 1_125_899_906_842_624.0;
-    const EXBIBYTE: f64 = 1_152_921_504_606_846_976.0;
+    let size = size;
+    const KIBIBYTE: u64 = 1024;
+    const MEBIBYTE: u64 = 1_048_576;
+    const GIBIBYTE: u64 = 1_073_741_824;
+    const TEBIBYTE: u64 = 1_099_511_627_776;
+    const PEBIBYTE: u64 = 1_125_899_906_842_624;
+    const EXBIBYTE: u64 = 1_152_921_504_606_846_976;
 
-    let (size, symbol) = if size < KIBIBYTE {
-        (size, "B")
-    } else if size < MEBIBYTE {
-        (size / KIBIBYTE, "KiB")
-    } else if size < GIBIBYTE {
-        (size / MEBIBYTE, "MiB")
-    } else if size < TEBIBYTE {
-        (size / GIBIBYTE, "GiB")
-    } else if size < PEBIBYTE {
-        (size / TEBIBYTE, "TiB")
-    } else if size < EXBIBYTE {
-        (size / PEBIBYTE, "PiB")
-    } else {
-        (size / EXBIBYTE, "EiB")
+    let (size, symbol) = match size {
+        size if size < KIBIBYTE => (size as f64, "B"),
+        size if size < MEBIBYTE => (size as f64 / KIBIBYTE as f64, "KiB"),
+        size if size < GIBIBYTE => (size as f64 / MEBIBYTE as f64, "MiB"),
+        size if size < TEBIBYTE => (size as f64 / GIBIBYTE as f64, "GiB"),
+        size if size < PEBIBYTE => (size as f64 / TEBIBYTE as f64, "TiB"),
+        size if size < EXBIBYTE => (size as f64 / PEBIBYTE as f64, "PiB"),
+        _ => (size as f64 / EXBIBYTE as f64, "EiB"),
     };
 
     format!("{:.1}{}", size, symbol)
