@@ -16,9 +16,9 @@ license = "MIT"
 exclude = ["test_dir"]
 edition = "2018"
 
-
 [dependencies]
 walkdir = "2"
+humansize = "1.1.0"
 
 [profile.release]
 incremental = false
