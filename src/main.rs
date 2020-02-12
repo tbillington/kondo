@@ -1,3 +1,4 @@
+use humansize::{FileSize, file_size_opts};
 use std::{env, io, path};
 use structopt::StructOpt;
 use walkdir;
@@ -183,26 +184,8 @@ fn dir_size(path: &path::Path) -> u64 {
         .sum()
 }
 
-fn pretty_size(size: u64) -> String {
-    let size = size;
-    const KIBIBYTE: u64 = 1024;
-    const MEBIBYTE: u64 = 1_048_576;
-    const GIBIBYTE: u64 = 1_073_741_824;
-    const TEBIBYTE: u64 = 1_099_511_627_776;
-    const PEBIBYTE: u64 = 1_125_899_906_842_624;
-    const EXBIBYTE: u64 = 1_152_921_504_606_846_976;
-
-    let (size, symbol) = match size {
-        size if size < KIBIBYTE => (size as f64, "B"),
-        size if size < MEBIBYTE => (size as f64 / KIBIBYTE as f64, "KiB"),
-        size if size < GIBIBYTE => (size as f64 / MEBIBYTE as f64, "MiB"),
-        size if size < TEBIBYTE => (size as f64 / GIBIBYTE as f64, "GiB"),
-        size if size < PEBIBYTE => (size as f64 / TEBIBYTE as f64, "TiB"),
-        size if size < EXBIBYTE => (size as f64 / PEBIBYTE as f64, "PiB"),
-        _ => (size as f64 / EXBIBYTE as f64, "EiB"),
-    };
-
-    format!("{:.1}{}", size, symbol)
+fn pretty_size(size: u64) -> Result<String, String> {
+    size.file_size(file_size_opts::CONVENTIONAL)
 }
 
 #[derive(StructOpt, Debug)]
@@ -254,13 +237,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         writeln!(
             &mut write_handle,
             "{:>10} {} {}",
-            pretty_size(*size),
+            pretty_size(*size)?,
             type_name,
             name
         )?;
     }
 
-    writeln!(&mut write_handle, "{} possible savings", pretty_size(total))?;
+    writeln!(&mut write_handle, "{} possible savings", pretty_size(total)?)?;
 
     Ok(())
 }
