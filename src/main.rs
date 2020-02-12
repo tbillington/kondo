@@ -1,4 +1,5 @@
 use std::{env, io, path};
+use structopt::StructOpt;
 use walkdir;
 
 const SYMLINK_FOLLOW: bool = true;
@@ -204,23 +205,32 @@ fn pretty_size(size: u64) -> String {
     format!("{:.1}{}", size, symbol)
 }
 
+#[derive(StructOpt, Debug)]
+#[structopt(name = "kondo")]
+struct Opt {
+    #[structopt(name = "DIRS", parse(from_os_str))]
+    /// The directory to examine
+    dirs: Vec<std::path::PathBuf>,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use io::Write;
-    let dir = {
-        let mut args: Vec<String> = env::args().collect();
-        if args.len() == 2 {
-            path::PathBuf::from(args.pop().unwrap())
-        } else {
-            env::current_dir()?
-        }
+    let opt = Opt::from_args();
+    let dirs = if opt.dirs.is_empty() {
+        vec![env::current_dir()?]
+    } else {
+        opt.dirs
     };
 
     let stdout = io::stdout();
     let mut write_handle = stdout.lock();
 
-    writeln!(&mut write_handle, "Scanning {:?}", dir)?;
+    let mut project_dirs = vec![];
 
-    let project_dirs = scan(&dir);
+    for dir in dirs {
+        writeln!(&mut write_handle, "Scanning {:?}", dir)?;
+        project_dirs.append(&mut scan(&dir));
+    }
 
     writeln!(&mut write_handle, "{} projects found", project_dirs.len())?;
 
