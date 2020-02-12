@@ -210,13 +210,17 @@ fn pretty_size(size: u64) -> String {
 struct Opt {
     #[structopt(name = "DIRS", parse(from_os_str))]
     /// The directory to examine
-    dirs: Vec<std::path::PathBuf>
+    dirs: Vec<std::path::PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use io::Write;
     let opt = Opt::from_args();
-    let dirs = if opt.dirs.is_empty() { vec![env::current_dir()?] } else { opt.dirs };
+    let dirs = if opt.dirs.is_empty() {
+        vec![env::current_dir()?]
+    } else {
+        opt.dirs
+    };
 
     let stdout = io::stdout();
     let mut write_handle = stdout.lock();
