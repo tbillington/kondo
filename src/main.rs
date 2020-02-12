@@ -157,7 +157,7 @@ fn is_hidden(entry: &walkdir::DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-fn scan<P: AsRef<path::Path>>(path: &P) -> Vec<Project> {
+fn scan<P: AsRef<path::Path>>(path: &P) -> impl Iterator<Item = Project> {
     walkdir::WalkDir::new(path)
         .follow_links(SYMLINK_FOLLOW)
         .into_iter()
@@ -168,7 +168,6 @@ fn scan<P: AsRef<path::Path>>(path: &P) -> Vec<Project> {
             let dir = dir.path();
             PROJECT_TYPES.iter().find_map(|p| p(dir))
         })
-        .collect()
 }
 
 fn dir_size(path: &path::Path) -> u64 {
@@ -225,12 +224,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::stdout();
     let mut write_handle = stdout.lock();
 
-    let mut project_dirs = vec![];
-
-    for dir in dirs {
-        writeln!(&mut write_handle, "Scanning {:?}", dir)?;
-        project_dirs.append(&mut scan(&dir));
-    }
+    let project_dirs: Vec<Project> = dirs
+        .iter()
+        .flat_map(|dir| {
+            writeln!(&mut write_handle, "Scanning {:?}", dir).unwrap();
+            scan(&dir)
+        })
+        .collect();
 
     writeln!(&mut write_handle, "{} projects found", project_dirs.len())?;
 
