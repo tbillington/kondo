@@ -215,10 +215,16 @@ struct Opt {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use io::Write;
     let opt = Opt::from_args();
-    let dirs = if opt.dirs.is_empty() {
-        vec![env::current_dir()?]
+    let dirs: Vec<path::PathBuf> = {
+        let cd = env::current_dir()?;
+        if opt.dirs.is_empty() {
+            vec![cd]
     } else {
         opt.dirs
+                .into_iter()
+                .map(|d| if d.is_absolute() { d } else { cd.join(d) })
+                .collect()
+        }
     };
 
     let stdout = io::stdout();
