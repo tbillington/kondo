@@ -250,11 +250,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for dir in project_dirs.iter() {
             let dir_base = &dir.path;
             for p in dir.artifact_dirs() {
-                writeln!(
-                    &mut write_handle,
-                    "{}",
-                    dir_base.join(p).to_string_lossy()
-                )?;
+                writeln!(&mut write_handle, "{}", dir_base.join(p).to_string_lossy())?;
             }
         }
         return Ok(());
