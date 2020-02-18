@@ -1,6 +1,6 @@
 # Kondo 🧹
 
-![Kondo Tests](https://github.com/tbillington/kondo/workflows/Kondo%20Tests/badge.svg) ![Kondo Lints](https://github.com/tbillington/kondo/workflows/Kondo%20Lints/badge.svg)
+![Kondo Tests](https://github.com/tbillington/kondo/workflows/Kondo%20Tests/badge.svg) ![Kondo Lints](https://github.com/tbillington/kondo/workflows/Kondo%20Lints/badge.svg) [![](https://tokei.rs/b1/github/tbillington/kondo?category=code)](https://github.com/tbillington/kondo).
 
 Cleans unneeded directories and files from your system.
 
