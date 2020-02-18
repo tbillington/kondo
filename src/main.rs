@@ -1,4 +1,4 @@
-use std::{env, io, path};
+use std::{env, io, path, process};
 use structopt::StructOpt;
 use walkdir;
 
@@ -221,6 +221,10 @@ struct Opt {
     #[structopt(short, long)]
     artifact_dirs: bool,
 
+    /// Run command for artifact dirs
+    #[structopt(short, long)]
+    command: Option<String>,
+
     /// The directories to examine
     #[structopt(name = "DIRS", parse(from_os_str))]
     dirs: Vec<std::path::PathBuf>,
@@ -245,6 +249,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let stdout = io::stdout();
     let mut write_handle = stdout.lock();
+
+    if let Some(command) = opt.command {
+        for dir in project_dirs.iter() {
+            let dir_base = &dir.path;
+            for p in dir.artifact_dirs() {
+                process::Command::new(&command)
+                    .arg(dir_base.join(p))
+                    .spawn()?;
+            }
+        }
+    };
 
     if opt.artifact_dirs {
         for dir in project_dirs.iter() {
