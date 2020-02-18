@@ -48,6 +48,36 @@ Calculating savings per project
 9.5GB possible savings
 ```
 
+## Options/Flags
+
+### Artifact Dirs
+
+`kondo -a` will output a line-separated list of artifact directories.
+
+```
+$ kondo test_dir -a
+C:\Users\Trent\code\kondo\test_dir\node_project\node_modules
+C:\Users\Trent\code\kondo\test_dir\rust_project\target
+C:\Users\Trent\code\kondo\test_dir\health-dots\Temp
+C:\Users\Trent\code\kondo\test_dir\health-dots\Obj
+C:\Users\Trent\code\kondo\test_dir\health-dots\MemoryCaptures
+C:\Users\Trent\code\kondo\test_dir\health-dots\Build
+```
+
+### Command
+
+`kondo -c <COMMAND>` will run your supplied command for each artifact directory.
+
+```
+$ kondo test_dir -c echo
+C:\Users\Trent\code\kondo\test_dir\node_project\node_modules
+C:\Users\Trent\code\kondo\test_dir\rust_project\target
+C:\Users\Trent\code\kondo\test_dir\health-dots\Temp
+C:\Users\Trent\code\kondo\test_dir\health-dots\Obj
+C:\Users\Trent\code\kondo\test_dir\health-dots\MemoryCaptures
+C:\Users\Trent\code\kondo\test_dir\health-dots\Build
+```
+
 ## Similar Projects
 
 - [The Tin Summer](https://github.com/vmchale/tin-summer)
