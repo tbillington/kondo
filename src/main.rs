@@ -122,6 +122,16 @@ struct Project {
 }
 
 impl Project {
+    fn artifact_dirs(&self) -> impl Iterator<Item = &&str> {
+        match self.project_type {
+            ProjectType::Cargo => PROJECT_CARGO_DIRS.iter(),
+            ProjectType::Node => PROJECT_NODE_DIRS.iter(),
+            ProjectType::Unity => PROJECT_UNITY_DIRS.iter(),
+            ProjectType::Stack => PROJECT_STACK_DIRS.iter(),
+            ProjectType::SBT => PROJECT_SBT_DIRS.iter(),
+        }
+    }
+
     fn name(&self) -> String {
         self.path.to_str().unwrap().to_string()
     }
@@ -207,8 +217,12 @@ fn pretty_size(size: u64) -> String {
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
 struct Opt {
+    /// Output artifact directories only
+    #[structopt(short, long)]
+    artifact_dirs: bool,
+
+    /// The directories to examine
     #[structopt(name = "DIRS", parse(from_os_str))]
-    /// The directory to examine
     dirs: Vec<std::path::PathBuf>,
 }
 
@@ -219,28 +233,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let cd = env::current_dir()?;
         if opt.dirs.is_empty() {
             vec![cd]
-    } else {
-        opt.dirs
+        } else {
+            opt.dirs
                 .into_iter()
                 .map(|d| if d.is_absolute() { d } else { cd.join(d) })
                 .collect()
         }
     };
 
+    let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
+
     let stdout = io::stdout();
     let mut write_handle = stdout.lock();
 
-    let project_dirs: Vec<Project> = dirs
-        .iter()
-        .flat_map(|dir| {
-            writeln!(&mut write_handle, "Scanning {:?}", dir).unwrap();
-            scan(&dir)
-        })
-        .collect();
-
-    writeln!(&mut write_handle, "{} projects found", project_dirs.len())?;
-
-    writeln!(&mut write_handle, "Calculating savings per project")?;
+    if opt.artifact_dirs {
+        for dir in project_dirs.iter() {
+            let dir_base = &dir.path;
+            for p in dir.artifact_dirs() {
+                writeln!(
+                    &mut write_handle,
+                    "{}",
+                    dir_base.join(p).to_string_lossy()
+                )?;
+            }
+        }
+        return Ok(());
+    }
 
     let mut total = 0;
 
