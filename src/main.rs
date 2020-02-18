@@ -259,6 +259,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .spawn()?;
             }
         }
+        return Ok(());
     };
 
     if opt.artifact_dirs {
