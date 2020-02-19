@@ -30,74 +30,39 @@ const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 
-fn cargo_project(path: &path::Path) -> Option<Project> {
+
+fn check_file_exists(path: &path::Path, file_name: &str, project_type: ProjectType) -> Option<Project> {
     let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_CARGO_TOML,
+        Ok(de) => de.file_name() == file_name,
         Err(_) => false,
     });
     if has_cargo_toml {
         return Some(Project {
-            project_type: ProjectType::Cargo,
+            project_type: project_type,
             path: path.to_path_buf(),
         });
     }
     None
+}
+
+fn cargo_project(path: &path::Path) -> Option<Project> {
+    check_file_exists(path, FILE_CARGO_TOML, ProjectType::Cargo)
 }
 
 fn node_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_PACKAGE_JSON,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::Node,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_PACKAGE_JSON, ProjectType::Node)
 }
 
 fn sbt_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_SBT_BUILD,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::SBT,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_SBT_BUILD, ProjectType::SBT)
 }
 
 fn unity_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_ASSEMBLY_CSHARP,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::Unity,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_ASSEMBLY_CSHARP, ProjectType::Unity)
 }
 
 fn stack_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_STACK_HASKELL,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::Stack,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_STACK_HASKELL, ProjectType::Stack)
 }
 
 const PROJECT_TYPES: [fn(path: &path::Path) -> Option<Project>; 5] = [
