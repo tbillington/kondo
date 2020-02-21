@@ -13,6 +13,7 @@ Supports:
 - [Unity](https://unity.com/) Projects
 - [SBT](https://www.scala-sbt.org/) projects
 - [Haskell Stack](https://docs.haskellstack.org/) projects
+- [Maven](https://maven.apache.org/) projects
 
 ## Roadmap
 
