@@ -44,7 +44,7 @@ fn check_file_exists(
     });
     if has_cargo_toml {
         return Some(Project {
-            project_type: project_type,
+            project_type,
             path: path.to_path_buf(),
         });
     }
