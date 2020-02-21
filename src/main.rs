@@ -9,6 +9,7 @@ const FILE_PACKAGE_JSON: &str = "package.json";
 const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
+const FILE_MVN_BUILD: &str = "pom.xml";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -23,89 +24,64 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
 ];
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
+const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
 const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
+const PROJECT_MVN_NAME: &str = "Maven";
 
-fn cargo_project(path: &path::Path) -> Option<Project> {
+fn check_file_exists(
+    path: &path::Path,
+    file_name: &str,
+    project_type: ProjectType,
+) -> Option<Project> {
     let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_CARGO_TOML,
+        Ok(de) => de.file_name() == file_name,
         Err(_) => false,
     });
     if has_cargo_toml {
         return Some(Project {
-            project_type: ProjectType::Cargo,
+            project_type,
             path: path.to_path_buf(),
         });
     }
     None
+}
+
+fn cargo_project(path: &path::Path) -> Option<Project> {
+    check_file_exists(path, FILE_CARGO_TOML, ProjectType::Cargo)
 }
 
 fn node_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_PACKAGE_JSON,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::Node,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_PACKAGE_JSON, ProjectType::Node)
 }
 
 fn sbt_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_SBT_BUILD,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::SBT,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_SBT_BUILD, ProjectType::SBT)
 }
 
 fn unity_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_ASSEMBLY_CSHARP,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::Unity,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_ASSEMBLY_CSHARP, ProjectType::Unity)
 }
 
 fn stack_project(path: &path::Path) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == FILE_STACK_HASKELL,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type: ProjectType::Stack,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+    check_file_exists(path, FILE_STACK_HASKELL, ProjectType::Stack)
 }
 
-const PROJECT_TYPES: [fn(path: &path::Path) -> Option<Project>; 5] = [
+fn mvn_project(path: &path::Path) -> Option<Project> {
+    check_file_exists(path, FILE_MVN_BUILD, ProjectType::Maven)
+}
+
+const PROJECT_TYPES: [fn(path: &path::Path) -> Option<Project>; 6] = [
     cargo_project,
     node_project,
     unity_project,
     stack_project,
     sbt_project,
+    mvn_project,
 ];
 
 enum ProjectType {
@@ -114,6 +90,7 @@ enum ProjectType {
     Unity,
     Stack,
     SBT,
+    Maven,
 }
 
 struct Project {
@@ -129,6 +106,7 @@ impl Project {
             ProjectType::Unity => PROJECT_UNITY_DIRS.iter(),
             ProjectType::Stack => PROJECT_STACK_DIRS.iter(),
             ProjectType::SBT => PROJECT_SBT_DIRS.iter(),
+            ProjectType::Maven => PROJECT_MVN_DIRS.iter(),
         }
     }
 
@@ -137,15 +115,9 @@ impl Project {
     }
 
     fn size(&self) -> u64 {
-        match self.project_type {
-            ProjectType::Cargo => PROJECT_CARGO_DIRS.iter(),
-            ProjectType::Node => PROJECT_NODE_DIRS.iter(),
-            ProjectType::Unity => PROJECT_UNITY_DIRS.iter(),
-            ProjectType::Stack => PROJECT_STACK_DIRS.iter(),
-            ProjectType::SBT => PROJECT_SBT_DIRS.iter(),
-        }
-        .map(|p| dir_size(&self.path.join(p)))
-        .sum()
+        self.artifact_dirs()
+            .map(|p| dir_size(&self.path.join(p)))
+            .sum()
     }
 
     fn type_name(&self) -> &str {
@@ -155,6 +127,7 @@ impl Project {
             ProjectType::Unity => PROJECT_UNITY_NAME,
             ProjectType::Stack => PROJECT_STACK_NAME,
             ProjectType::SBT => PROJECT_SBT_NAME,
+            ProjectType::Maven => PROJECT_MVN_NAME,
         }
     }
 }
