@@ -33,8 +33,11 @@ const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
 
-
-fn check_file_exists(path: &path::Path, file_name: &str, project_type: ProjectType) -> Option<Project> {
+fn check_file_exists(
+    path: &path::Path,
+    file_name: &str,
+    project_type: ProjectType,
+) -> Option<Project> {
     let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
         Ok(de) => de.file_name() == file_name,
         Err(_) => false,
@@ -71,7 +74,6 @@ fn stack_project(path: &path::Path) -> Option<Project> {
 fn mvn_project(path: &path::Path) -> Option<Project> {
     check_file_exists(path, FILE_MVN_BUILD, ProjectType::Maven)
 }
-
 
 const PROJECT_TYPES: [fn(path: &path::Path) -> Option<Project>; 6] = [
     cargo_project,
