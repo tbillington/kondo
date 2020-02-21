@@ -113,16 +113,9 @@ impl Project {
     }
 
     fn size(&self) -> u64 {
-        match self.project_type {
-            ProjectType::Cargo => PROJECT_CARGO_DIRS.iter(),
-            ProjectType::Node => PROJECT_NODE_DIRS.iter(),
-            ProjectType::Unity => PROJECT_UNITY_DIRS.iter(),
-            ProjectType::Stack => PROJECT_STACK_DIRS.iter(),
-            ProjectType::SBT => PROJECT_SBT_DIRS.iter(),
-            ProjectType::Maven => PROJECT_MVN_DIRS.iter(),
-        }
-        .map(|p| dir_size(&self.path.join(p)))
-        .sum()
+        self.artifact_dirs()
+            .map(|p| dir_size(&self.path.join(p)))
+            .sum()
     }
 
     fn type_name(&self) -> &str {
