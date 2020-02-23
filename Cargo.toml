@@ -18,8 +18,8 @@ edition = "2018"
 
 
 [dependencies]
-walkdir = "2"
 structopt = "0.3.9"
+walkdir = "2"
 
 [profile.release]
 incremental = false
