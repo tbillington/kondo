@@ -251,12 +251,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut project_sizes: Vec<(u64, String, &str)> = project_dirs
         .iter()
-        .map(|p| {
-            let size = p.size();
-            total += size;
-            (size, p.name(), p.type_name())
+        .flat_map(|p| match p.size() {
+            0 => None,
+            size => {
+                total += size;
+                Some((size, p.name(), p.type_name()))
+            }
         })
-        .filter(|(size, _, _)| *size > 0)
         .collect();
 
     project_sizes.sort_unstable_by_key(|p| p.0);
