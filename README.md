@@ -15,6 +15,12 @@ Supports:
 - [Haskell Stack](https://docs.haskellstack.org/) projects
 - [Maven](https://maven.apache.org/) projects
 
+## Installation
+
+You can install `kondo` via Cargo with `cargo install kondo`.
+
+If you don't have Cargo installed you can download a binary for your platform from the [Releases](https://github.com/tbillington/kondo/releases) page.
+
 ## Roadmap
 
 - Actually delete (with prompt)
