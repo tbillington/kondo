@@ -219,7 +219,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             opt.dirs
                 .into_iter()
-                .map(|d| if d.is_absolute() { d } else { cd.join(d) })
+                .map(|d| if d.is_absolute() { d } else { cd.join(d).canonicalize().expect("Unable to canonicalize!") })
                 .collect()
         }
     };
