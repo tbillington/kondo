@@ -219,7 +219,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             opt.dirs
                 .into_iter()
-                .map(|d| if d.is_absolute() { d } else { cd.join(d).canonicalize().expect("Unable to canonicalize!") })
+                .map(|d| {
+                    if d.is_absolute() {
+                        d
+                    } else {
+                        cd.join(d).canonicalize().expect("Unable to canonicalize!")
+                    }
+                })
                 .collect()
         }
     };
@@ -235,9 +241,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for p in dir.artifact_dirs() {
                 let full_path = dir_base.join(p);
                 if !opt.existing_dirs || full_path.metadata().is_ok() {
-                    process::Command::new(&command)
-                        .arg(full_path)
-                        .spawn()?;
+                    process::Command::new(&command).arg(full_path).spawn()?;
                 }
             }
         }
