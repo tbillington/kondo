@@ -196,6 +196,10 @@ struct Opt {
     #[structopt(short, long)]
     artifact_dirs: bool,
 
+    /// Limit to existing directories only
+    #[structopt(short, long)]
+    existing_dirs: bool,
+
     /// Run command for artifact dirs
     #[structopt(short, long)]
     command: Option<String>,
@@ -215,7 +219,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             opt.dirs
                 .into_iter()
-                .map(|d| if d.is_absolute() { d } else { cd.join(d) })
+                .map(|d| {
+                    if d.is_absolute() {
+                        d
+                    } else {
+                        cd.join(d).canonicalize().expect("Unable to canonicalize!")
+                    }
+                })
                 .collect()
         }
     };
@@ -229,9 +239,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for dir in project_dirs.iter() {
             let dir_base = &dir.path;
             for p in dir.artifact_dirs() {
-                process::Command::new(&command)
-                    .arg(dir_base.join(p))
-                    .spawn()?;
+                let full_path = dir_base.join(p);
+                if !opt.existing_dirs || full_path.metadata().is_ok() {
+                    process::Command::new(&command).arg(full_path).spawn()?;
+                }
             }
         }
         return Ok(());
@@ -241,7 +252,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for dir in project_dirs.iter() {
             let dir_base = &dir.path;
             for p in dir.artifact_dirs() {
-                writeln!(&mut write_handle, "{}", dir_base.join(p).to_string_lossy())?;
+                let full_path = dir_base.join(p);
+                if !opt.existing_dirs || full_path.metadata().is_ok() {
+                    writeln!(&mut write_handle, "{}", full_path.to_string_lossy())?;
+                }
             }
         }
         return Ok(());
