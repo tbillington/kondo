@@ -243,3 +243,19 @@ pub fn pretty_size(size: u64) -> String {
 
     format!("{:.1}{}", size, symbol)
 }
+
+pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
+    for p in match project_type_from_dir(project_path.into()) {
+        Some(p) => p,
+        None => return Ok(()),
+    } {
+        for ad in p
+            .artifact_dirs()
+            .map(|ad| path::PathBuf::from(project_path).join(ad))
+        {
+            println!("deleting {:?}", ad);
+            // fs::remove_dir_all(ad)?;
+        }
+    }
+    Ok(())
+}

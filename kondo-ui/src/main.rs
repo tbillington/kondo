@@ -6,7 +6,7 @@ use druid::{
     LifeCycleCtx, LocalizedString, PaintCtx, Selector, Size, UpdateCtx, Widget, WindowDesc,
 };
 
-use kondo_lib::{pretty_size, scan};
+use kondo_lib::{clean, pretty_size, scan};
 
 const ADD_ITEM: Selector = Selector::new("event.add-item");
 const SET_ACTIVE_ITEM: Selector = Selector::new("event.set-active-item");
@@ -41,8 +41,8 @@ impl Widget<AppData> for EventHandler {
                 ctx.request_paint();
             }
             Event::Command(cmd) if cmd.selector == SET_ACTIVE_ITEM => {
-                let active_string = cmd.get_object::<String>().unwrap().clone();
-                data.active_item = Some((active_string, 10));
+                let active_item = cmd.get_object::<ItemData>().unwrap().clone();
+                data.active_item = Some(active_item);
                 ctx.request_paint();
             }
             _ => (),
@@ -122,8 +122,11 @@ fn make_ui() -> impl Widget<AppData> {
         List::new(|| {
             Button::new(
                 |item: &ItemData, _env: &_| format!("{}: {}", item.0, pretty_size(item.1)),
-                |_ctx, _data, _env| {
-                    _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, _data.0.clone()), None)
+                |_ctx, data, _env| {
+                    _ctx.submit_command(
+                        Command::new(SET_ACTIVE_ITEM, (data.0.clone(), data.1)),
+                        None,
+                    )
                 },
             )
         })
@@ -141,9 +144,20 @@ fn make_ui() -> impl Widget<AppData> {
             vert.add_child(Label::new("Active Item Information"), 0.0);
             vert.add_child(
                 Label::new(|data: &AppData, _env: &_| match data.active_item {
-                    Some((ref name, size)) => format!("{} {}", name, size),
+                    Some((ref name, size)) => format!("{} {}", name, pretty_size(size)),
                     None => String::from("none selected"),
                 }),
+                0.0,
+            );
+            vert.add_child(
+                Button::new(
+                    "Clean project of artifacts",
+                    |_ctx, data: &mut AppData, _env| {
+                        if let Some((active_item_path, _)) = data.active_item.clone() {
+                            clean(&active_item_path).unwrap();
+                        }
+                    },
+                ),
                 0.0,
             );
             horiz.add_child(vert, 1.0);
