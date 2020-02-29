@@ -1,14 +1,15 @@
 use std::{env, sync::Arc, thread};
 
 use druid::{
-    widget::{Flex, Label, List, Scroll, WidgetExt},
-    AppLauncher, BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, Lens, LifeCycle,
+    widget::{Button, Flex, Label, List, Scroll, WidgetExt},
+    AppLauncher, BoxConstraints, Command, Data, Env, Event, EventCtx, LayoutCtx, Lens, LifeCycle,
     LifeCycleCtx, LocalizedString, PaintCtx, Selector, Size, UpdateCtx, Widget, WindowDesc,
 };
 
 use kondo_lib::{pretty_size, scan};
 
 const ADD_ITEM: Selector = Selector::new("event.add-item");
+const SET_ACTIVE_ITEM: Selector = Selector::new("event.set-active-item");
 
 struct EventHandler {}
 
@@ -17,6 +18,7 @@ type ItemData = (String, u64);
 #[derive(Debug, Clone, Data, Lens)]
 struct AppData {
     items: Arc<Vec<ItemData>>,
+    active_item: Option<ItemData>,
     scan_dir: String,
 }
 
@@ -36,6 +38,11 @@ impl Widget<AppData> for EventHandler {
                     .binary_search_by(|probe| new_elem.1.cmp(&probe.1))
                     .unwrap_or_else(|e| e);
                 items.insert(pos, new_elem);
+                ctx.request_paint();
+            }
+            Event::Command(cmd) if cmd.selector == SET_ACTIVE_ITEM => {
+                let active_string = cmd.get_object::<String>().unwrap().clone();
+                data.active_item = Some((active_string, 10));
                 ctx.request_paint();
             }
             _ => (),
@@ -85,6 +92,7 @@ fn main() {
         .use_simple_logger()
         .launch(AppData {
             items: Arc::new(vec![]),
+            active_item: None,
             scan_dir,
         })
         .expect("launch failed");
@@ -112,23 +120,37 @@ fn make_ui() -> impl Widget<AppData> {
 
     let l = Scroll::new(
         List::new(|| {
-            Label::new(|item: &ItemData, _env: &_| format!("{}: {}", item.0, pretty_size(item.1)))
+            Button::new(
+                |item: &ItemData, _env: &_| format!("{}: {}", item.0, pretty_size(item.1)),
+                |_ctx, _data, _env| {
+                    _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, _data.0.clone()), None)
+                },
+            )
         })
         .lens(AppData::items),
     )
     .vertical();
 
-    let mut horiz = Flex::row();
+    {
+        let mut horiz = Flex::row();
 
-    horiz.add_child(l, 1.0);
+        horiz.add_child(l, 1.0);
 
-    let mut vert = Flex::column();
+        {
+            let mut vert = Flex::column();
+            vert.add_child(Label::new("Active Item Information"), 0.0);
+            vert.add_child(
+                Label::new(|data: &AppData, _env: &_| match data.active_item {
+                    Some((ref name, size)) => format!("{} {}", name, size),
+                    None => String::from("none selected"),
+                }),
+                0.0,
+            );
+            horiz.add_child(vert, 1.0);
+        }
 
-    vert.add_child(Label::new("Active Item Information"), 0.0);
-
-    horiz.add_child(vert, 0.5);
-
-    root.add_child(horiz, 1.0);
+        root.add_child(horiz, 1.0);
+    }
 
     let cw = EventHandler::new().fix_width(0.0).fix_height(0.0);
 
