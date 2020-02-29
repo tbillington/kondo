@@ -2,6 +2,7 @@
 members = [
   "kondo",
   "kondo-lib",
+  "kondo-ui",
 ]
 
 [profile.release]
