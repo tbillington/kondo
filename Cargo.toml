@@ -1,25 +1,8 @@
-[package]
-name = "kondo"
-version = "0.2.0"
-authors = ["Trent Billington <trent.h.billington@gmail.com>"]
-description = """
-kondo is a filesystem cleaning tool that recursively searches directories
-for known project structures and determines how much space you could save by
-deleting the unnecessary files.
-"""
-documentation = "https://github.com/tbillington/kondo"
-homepage = "https://github.com/tbillington/kondo"
-repository = "https://github.com/tbillington/kondo"
-readme = "README.md"
-categories = ["command-line-utilities"]
-license = "MIT"
-exclude = ["test_dir"]
-edition = "2018"
-
-
-[dependencies]
-structopt = "0.3.9"
-walkdir = "2"
+[workspace]
+members = [
+  "kondo",
+  "kondo-lib",
+]
 
 [profile.release]
 incremental = false
