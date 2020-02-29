@@ -10,6 +10,7 @@ use kondo_lib::{clean, pretty_size, scan};
 
 const ADD_ITEM: Selector = Selector::new("event.add-item");
 const SET_ACTIVE_ITEM: Selector = Selector::new("event.set-active-item");
+const CLEAN_PATH: Selector = Selector::new("event.clean-path");
 
 struct EventHandler {}
 
@@ -20,6 +21,8 @@ struct AppData {
     items: Arc<Vec<ItemData>>,
     active_item: Option<ItemData>,
     scan_dir: String,
+    total: u64,
+    saved: u64,
 }
 
 impl EventHandler {
@@ -33,6 +36,7 @@ impl Widget<AppData> for EventHandler {
         match event {
             Event::Command(cmd) if cmd.selector == ADD_ITEM => {
                 let new_elem = cmd.get_object::<ItemData>().unwrap().clone();
+                data.total += new_elem.1;
                 let items = Arc::make_mut(&mut data.items);
                 let pos = items
                     .binary_search_by(|probe| new_elem.1.cmp(&probe.1))
@@ -43,6 +47,19 @@ impl Widget<AppData> for EventHandler {
             Event::Command(cmd) if cmd.selector == SET_ACTIVE_ITEM => {
                 let active_item = cmd.get_object::<ItemData>().unwrap().clone();
                 data.active_item = Some(active_item);
+                ctx.request_paint();
+            }
+            Event::Command(cmd) if cmd.selector == CLEAN_PATH => {
+                let active_item = cmd.get_object::<ItemData>().unwrap().clone();
+                clean(&active_item.0).unwrap();
+                data.total -= active_item.1;
+                data.saved += active_item.1;
+                let items = Arc::make_mut(&mut data.items);
+                let pos = items.binary_search_by(|probe| active_item.1.cmp(&probe.1));
+                if let Ok(pos) = pos {
+                    items.remove(pos);
+                }
+                data.active_item = None;
                 ctx.request_paint();
             }
             _ => (),
@@ -94,6 +111,8 @@ fn main() {
             items: Arc::new(vec![]),
             active_item: None,
             scan_dir,
+            total: 0,
+            saved: 0,
         })
         .expect("launch failed");
 }
@@ -110,8 +129,9 @@ fn make_ui() -> impl Widget<AppData> {
     root.add_child(
         Label::new(|data: &AppData, _env: &_| {
             format!(
-                "total: {}",
-                pretty_size(data.items.iter().map(|x| x.1).sum())
+                "total: {} recovered: {}",
+                pretty_size(data.total),
+                pretty_size(data.saved)
             )
         })
         .center(),
@@ -152,9 +172,9 @@ fn make_ui() -> impl Widget<AppData> {
             vert.add_child(
                 Button::new(
                     "Clean project of artifacts",
-                    |_ctx, data: &mut AppData, _env| {
-                        if let Some((active_item_path, _)) = data.active_item.clone() {
-                            clean(&active_item_path).unwrap();
+                    |ctx, data: &mut AppData, _env| {
+                        if let Some(active_item) = data.active_item.clone() {
+                            ctx.submit_command(Command::new(CLEAN_PATH, active_item), None);
                         }
                     },
                 ),
