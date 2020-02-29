@@ -1,36 +1,36 @@
 name: Kondo Tests
 on: [push, pull_request]
 jobs:
-  test-nightly:
-    name: Test using nighly
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-      - name: Execute tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all
-  test-beta:
-    name: Test using beta
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: beta
-          override: true
-      - name: Execute tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all
+  # test-nightly:
+  #   name: Test using nighly
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Install toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: nightly
+  #         override: true
+  #     - name: Execute tests
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: test
+  #         args: --all
+  # test-beta:
+  #   name: Test using beta
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Install toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: beta
+  #         override: true
+  #     - name: Execute tests
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: test
+  #         args: --all
   test-stable:
     name: Test using stable
     runs-on: ubuntu-latest
