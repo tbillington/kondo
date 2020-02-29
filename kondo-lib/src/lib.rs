@@ -33,57 +33,38 @@ const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
 
-fn check_file_exists(
-    path: &path::Path,
-    file_name: &str,
-    project_type: ProjectType,
-) -> Option<Project> {
-    let has_cargo_toml = path.read_dir().unwrap().any(|r| match r {
-        Ok(de) => de.file_name() == file_name,
-        Err(_) => false,
-    });
-    if has_cargo_toml {
-        return Some(Project {
-            project_type,
-            path: path.to_path_buf(),
-        });
-    }
-    None
+fn project_type_from_dir(path: path::PathBuf) -> Option<impl Iterator<Item = Project>> {
+    let readdir = path.read_dir().ok()?;
+    Some(readdir.filter_map(move |rd| match rd {
+        Ok(de) => {
+            let file_name_a = de.file_name();
+            let file_name = file_name_a.to_str();
+            let file_name = match file_name {
+                Some(x) => x,
+                None => return None,
+            };
+            let p_type = match file_name {
+                FILE_CARGO_TOML => Some(ProjectType::Cargo),
+                FILE_PACKAGE_JSON => Some(ProjectType::Node),
+                FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
+                FILE_STACK_HASKELL => Some(ProjectType::Stack),
+                FILE_SBT_BUILD => Some(ProjectType::SBT),
+                FILE_MVN_BUILD => Some(ProjectType::Maven),
+                _ => None,
+            };
+            match p_type {
+                Some(t) => Some(Project {
+                    project_type: t,
+                    path: path.to_path_buf(),
+                }),
+                None => None,
+            }
+        }
+        _ => None,
+    }))
 }
 
-fn cargo_project(path: &path::Path) -> Option<Project> {
-    check_file_exists(path, FILE_CARGO_TOML, ProjectType::Cargo)
-}
-
-fn node_project(path: &path::Path) -> Option<Project> {
-    check_file_exists(path, FILE_PACKAGE_JSON, ProjectType::Node)
-}
-
-fn sbt_project(path: &path::Path) -> Option<Project> {
-    check_file_exists(path, FILE_SBT_BUILD, ProjectType::SBT)
-}
-
-fn unity_project(path: &path::Path) -> Option<Project> {
-    check_file_exists(path, FILE_ASSEMBLY_CSHARP, ProjectType::Unity)
-}
-
-fn stack_project(path: &path::Path) -> Option<Project> {
-    check_file_exists(path, FILE_STACK_HASKELL, ProjectType::Stack)
-}
-
-fn mvn_project(path: &path::Path) -> Option<Project> {
-    check_file_exists(path, FILE_MVN_BUILD, ProjectType::Maven)
-}
-
-const PROJECT_TYPES: [fn(path: &path::Path) -> Option<Project>; 6] = [
-    cargo_project,
-    node_project,
-    unity_project,
-    stack_project,
-    sbt_project,
-    mvn_project,
-];
-
+#[derive(Debug, Clone)]
 pub enum ProjectType {
     Cargo,
     Node,
@@ -93,6 +74,7 @@ pub enum ProjectType {
     Maven,
 }
 
+#[derive(Debug, Clone)]
 pub struct Project {
     pub project_type: ProjectType,
     pub path: path::PathBuf,
@@ -147,10 +129,8 @@ pub fn scan<P: AsRef<path::Path>>(path: &P) -> impl Iterator<Item = Project> {
         .filter_entry(|e| !is_hidden(e))
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_dir())
-        .filter_map(|dir| {
-            let dir = dir.path();
-            PROJECT_TYPES.iter().find_map(|p| p(dir))
-        })
+        .filter_map(|dir: walkdir::DirEntry| project_type_from_dir(dir.into_path()))
+        .flat_map(|dirs| dirs)
 }
 
 fn dir_size(path: &path::Path) -> u64 {
@@ -159,8 +139,7 @@ fn dir_size(path: &path::Path) -> u64 {
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
-        .map(|e: walkdir::DirEntry| e.metadata())
-        .filter_map(|md| md.ok())
+        .filter_map(|e| e.metadata().ok())
         .map(|e| e.len())
         .sum()
 }
@@ -185,200 +164,4 @@ pub fn pretty_size(size: u64) -> String {
     };
 
     format!("{:.1}{}", size, symbol)
-}
-
-// fn main() -> Result<(), Box<dyn std::error::Error>> {
-//     use io::Write;
-//     let opt = Opt::from_args();
-//     let dirs: Vec<path::PathBuf> = {
-//         let cd = env::current_dir()?;
-//         if opt.dirs.is_empty() {
-//             vec![cd]
-//         } else {
-//             opt.dirs
-//                 .into_iter()
-//                 .map(|d| {
-//                     if d.is_absolute() {
-//                         d
-//                     } else {
-//                         cd.join(d).canonicalize().expect("Unable to canonicalize!")
-//                     }
-//                 })
-//                 .collect()
-//         }
-//     };
-
-//     let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
-
-//     let stdout = io::stdout();
-//     let mut write_handle = stdout.lock();
-
-//     if let Some(command) = opt.command {
-//         for dir in project_dirs.iter() {
-//             let dir_base = &dir.path;
-//             for p in dir.artifact_dirs() {
-//                 let full_path = dir_base.join(p);
-//                 if !opt.existing_dirs || full_path.metadata().is_ok() {
-//                     process::Command::new(&command).arg(full_path).spawn()?;
-//                 }
-//             }
-//         }
-//         return Ok(());
-//     };
-
-//     if opt.artifact_dirs {
-//         for dir in project_dirs.iter() {
-//             let dir_base = &dir.path;
-//             for p in dir.artifact_dirs() {
-//                 let full_path = dir_base.join(p);
-//                 if !opt.existing_dirs || full_path.metadata().is_ok() {
-//                     writeln!(&mut write_handle, "{}", full_path.to_string_lossy())?;
-//                 }
-//             }
-//         }
-//         return Ok(());
-//     }
-
-//     let mut total = 0;
-
-//     let mut project_sizes: Vec<(u64, String, &str)> = project_dirs
-//         .iter()
-//         .flat_map(|p| match p.size() {
-//             0 => None,
-//             size => {
-//                 total += size;
-//                 Some((size, p.name(), p.type_name()))
-//             }
-//         })
-//         .collect();
-
-//     project_sizes.sort_unstable_by_key(|p| p.0);
-
-//     for (size, name, type_name) in project_sizes.iter() {
-//         writeln!(
-//             &mut write_handle,
-//             "{:>10} {} {}",
-//             pretty_size(*size),
-//             type_name,
-//             name
-//         )?;
-//     }
-
-//     writeln!(&mut write_handle, "{} possible savings", pretty_size(total))?;
-
-//     Ok(())
-// }
-
-pub fn pub_scan_2<P: AsRef<path::Path>, F>(
-    dir: &P,
-    mut fon: F,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    F: FnMut(String),
-{
-    for p in scan(dir) {
-        fon(p.name());
-    }
-    Ok(())
-}
-
-// pub fn pub_scan_3<P: AsRef<path::Path>, F>(
-//     dir: &P,
-//     // mut fon: F,
-// ) -> impl Iterator<Item = Project>
-// // where
-// //     F: FnMut(String),
-// {
-//     scan(dir)
-//     // for p in scan(dir) {
-//     //     fon(p.name());
-//     // }
-//     // Ok(())
-// }
-
-pub fn pub_scan<P: AsRef<path::Path>>(
-    dir: &P,
-    sender: std::sync::mpsc::Sender<(String, u64)>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // use io::Write;
-    // let opt = Opt::from_args();
-    // let dirs: Vec<path::PathBuf> = {
-    //     let cd = env::current_dir()?;
-    //     let cd = path::PathBuf::from(r"C:\Users\Trent\code\rust");
-    //     if opt.dirs.is_empty() {
-    //         vec![cd]
-    //     } else {
-    //         opt.dirs
-    //             .into_iter()
-    //             .map(|d| {
-    //                 if d.is_absolute() {
-    //                     d
-    //                 } else {
-    //                     cd.join(d).canonicalize().expect("Unable to canonicalize!")
-    //                 }
-    //             })
-    //             .collect()
-    //     }
-    // };
-
-    // let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
-    // let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
-    // path::PathBuf::from(dir);
-    // for pd in dirs.iter() {
-    for p in scan(dir) {
-        sender.send((p.name(), p.size()))?;
-    }
-    // }
-    Ok(())
-
-    // let stdout = io::stdout();
-    // let mut write_handle = stdout.lock();
-
-    // if let Some(command) = opt.command {
-    //     for dir in project_dirs.iter() {
-    //         let dir_base = &dir.path;
-    //         for p in dir.artifact_dirs() {
-    //             let full_path = dir_base.join(p);
-    //             if !opt.existing_dirs || full_path.metadata().is_ok() {
-    //                 process::Command::new(&command).arg(full_path).spawn()?;
-    //             }
-    //         }
-    //     }
-    //     return Ok(());
-    // };
-
-    // if opt.artifact_dirs {
-    //     for dir in project_dirs.iter() {
-    //         let dir_base = &dir.path;
-    //         for p in dir.artifact_dirs() {
-    //             let full_path = dir_base.join(p);
-    //             if !opt.existing_dirs || full_path.metadata().is_ok() {
-    //                 writeln!(&mut write_handle, "{}", full_path.to_string_lossy())?;
-    //             }
-    //         }
-    //     }
-    //     return Ok(());
-    // }
-
-    // let mut total = 0;
-
-    // for p in project_dirs.iter() {
-    //     println!("found {} {}", p.name(), p.size());
-    //     sender.send((p.name(), p.size()))?;
-    // }
-
-    // let mut project_sizes: Vec<(u64, String, &str)> = project_dirs
-    //     .iter()
-    //     .flat_map(|p| match p.size() {
-    //         0 => None,
-    //         size => {
-    //             total += size;
-    //             Some((size, p.name(), p.type_name()))
-    //         }
-    //     })
-    //     .collect();
-
-    // project_sizes.sort_unstable_by_key(|p| p.0);
-
-    // Ok(())
 }
