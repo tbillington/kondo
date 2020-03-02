@@ -2,10 +2,10 @@ use std::{env, sync::Arc, thread};
 
 use druid::{
     commands::{OPEN_FILE, SHOW_OPEN_PANEL},
-    widget::{Button, Container, Flex, Label, List, Scroll, WidgetExt},
+    widget::{Button, Container, Controller, ControllerHost, Flex, Label, List, Scroll, WidgetExt},
     AppLauncher, BoxConstraints, Color, Command, Data, Env, Event, EventCtx, FileDialogOptions,
     FileInfo, LayoutCtx, Lens, LifeCycle, LifeCycleCtx, LocalizedString, PaintCtx, Selector, Size,
-    UpdateCtx, Widget, WindowDesc,
+    UpdateCtx, Widget, WidgetPod, WindowDesc,
 };
 
 use kondo_lib::{clean, pretty_size, scan};
@@ -33,8 +33,15 @@ impl EventHandler {
     }
 }
 
-impl Widget<AppData> for EventHandler {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut AppData, _env: &Env) {
+impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
+    fn event(
+        &mut self,
+        _child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut AppData,
+        _env: &Env,
+    ) {
         match event {
             Event::Command(cmd) if cmd.selector == ADD_ITEM => {
                 let new_elem = cmd.get_object::<ItemData>().unwrap().clone();
@@ -44,11 +51,13 @@ impl Widget<AppData> for EventHandler {
                     .binary_search_by(|probe| new_elem.1.cmp(&probe.1))
                     .unwrap_or_else(|e| e);
                 items.insert(pos, new_elem);
+                ctx.request_layout();
                 ctx.request_paint();
             }
             Event::Command(cmd) if cmd.selector == SET_ACTIVE_ITEM => {
                 let active_item = cmd.get_object::<ItemData>().unwrap().clone();
                 data.active_item = Some(active_item);
+                ctx.request_layout();
                 ctx.request_paint();
 
                 // ctx.submit_command(
@@ -67,6 +76,7 @@ impl Widget<AppData> for EventHandler {
                     items.remove(pos);
                 }
                 data.active_item = None;
+                ctx.request_layout();
                 ctx.request_paint();
             }
             Event::Command(cmd) if cmd.selector == OPEN_FILE => {
@@ -75,22 +85,26 @@ impl Widget<AppData> for EventHandler {
             }
             _ => (),
         }
+        _child.event(ctx, event, data, _env);
     }
 
-    fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx, _event: &LifeCycle, _data: &AppData, _: &Env) {
-    }
+    // fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx, _event: &LifeCycle, _data: &AppData, _: &Env) {
+    // }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &AppData, data: &AppData, _: &Env) {
-        if !old_data.same(data) {
-            ctx.request_paint()
-        }
-    }
+    // fn update(&mut self, ctx: &mut UpdateCtx, old_data: &AppData, data: &AppData, _: &Env) {
+    //     if !old_data.same(data) {
+    //         ctx.request_paint()
+    //     }
+    // }
 
-    fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &AppData, _: &Env) -> Size {
-        bc.max()
-    }
+    // fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &AppData, _: &Env) -> Size {
+    //     self.children.widget.layout()
+    //     // bc.max()
+    // }
 
-    fn paint(&mut self, _ctx: &mut PaintCtx, _data: &AppData, _env: &Env) {}
+    // fn paint(&mut self, _ctx: &mut PaintCtx, _data: &AppData, _env: &Env) {
+    //     self.children.widget.paint_with_offset(_ctx, _data, _env);
+    // }
 }
 
 fn main() {
@@ -200,18 +214,12 @@ fn make_ui() -> impl Widget<AppData> {
                 0.0,
             );
 
-            horiz.add_child(
-                // Container::new(vert.padding(2.5)).border(Color::rgb(1.0, 0.0, 0.0), 2.0),
-                vert.padding(2.5),
-                1.0,
-            );
+            horiz.add_child(vert.padding(2.5), 1.0);
         }
 
         root.add_child(horiz, 1.0);
     }
 
-    let cw = EventHandler::new().fix_width(0.0).fix_height(0.0);
-
-    root.add_child(cw, 0.0);
-    root
+    let cw = EventHandler::new();
+    root.controller(cw)
 }
