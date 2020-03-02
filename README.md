@@ -63,7 +63,7 @@ Calculating savings per project
 
 ### Artifact Dirs
 
-`kondo -a` will output a line-separated list of artifact directories.
+`kondo -a` will output a line-separated list of artifact directories you can delete to reclaim space.
 
 ```
 $ kondo test_dir -a
