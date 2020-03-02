@@ -21,6 +21,10 @@ You can install `kondo` via Cargo with `cargo install kondo`.
 
 If you don't have Cargo installed you can download a binary for your platform from the [Releases](https://github.com/tbillington/kondo/releases) page.
 
+## Screenshot
+
+![image](https://user-images.githubusercontent.com/2771466/75639044-00ac8980-5c83-11ea-9cf8-5e30e0b933b0.png)
+
 ## Roadmap
 
 - Actually delete (with prompt)
