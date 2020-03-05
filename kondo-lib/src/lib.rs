@@ -33,37 +33,6 @@ const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
 
-fn project_type_from_dir(path: path::PathBuf) -> Option<impl Iterator<Item = Project>> {
-    let readdir = path.read_dir().ok()?;
-    Some(readdir.filter_map(move |rd| match rd {
-        Ok(de) => {
-            let file_name_a = de.file_name();
-            let file_name = file_name_a.to_str();
-            let file_name = match file_name {
-                Some(x) => x,
-                None => return None,
-            };
-            let p_type = match file_name {
-                FILE_CARGO_TOML => Some(ProjectType::Cargo),
-                FILE_PACKAGE_JSON => Some(ProjectType::Node),
-                FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
-                FILE_STACK_HASKELL => Some(ProjectType::Stack),
-                FILE_SBT_BUILD => Some(ProjectType::SBT),
-                FILE_MVN_BUILD => Some(ProjectType::Maven),
-                _ => None,
-            };
-            match p_type {
-                Some(t) => Some(Project {
-                    project_type: t,
-                    path: path.to_path_buf(),
-                }),
-                None => None,
-            }
-        }
-        _ => None,
-    }))
-}
-
 #[derive(Debug, Clone)]
 pub enum ProjectType {
     Cargo,
@@ -122,15 +91,63 @@ fn is_hidden(entry: &walkdir::DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-pub fn scan<P: AsRef<path::Path>>(path: &P) -> impl Iterator<Item = Project> {
-    walkdir::WalkDir::new(path)
-        .follow_links(SYMLINK_FOLLOW)
-        .into_iter()
-        .filter_entry(|e| !is_hidden(e))
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_dir())
-        .filter_map(|dir: walkdir::DirEntry| project_type_from_dir(dir.into_path()))
-        .flat_map(|dirs| dirs)
+struct ProjectIter {
+    it: walkdir::IntoIter,
+}
+
+impl Iterator for ProjectIter {
+    type Item = Project;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let entry: walkdir::DirEntry = match self.it.next() {
+                None => return None,
+                Some(Err(_)) => continue,
+                Some(Ok(entry)) => entry,
+            };
+            if !entry.file_type().is_dir() {
+                continue;
+            }
+            if is_hidden(&entry) {
+                self.it.skip_current_dir();
+                continue;
+            }
+            let rd = match entry.path().read_dir() {
+                Err(_) => continue,
+                Ok(rd) => rd,
+            };
+            for dir_entry in rd.filter_map(|rd| rd.ok()) {
+                let file_name = match dir_entry.file_name().into_string() {
+                    Err(_) => continue,
+                    Ok(file_name) => file_name,
+                };
+                let p_type = match file_name.as_str() {
+                    FILE_CARGO_TOML => Some(ProjectType::Cargo),
+                    FILE_PACKAGE_JSON => Some(ProjectType::Node),
+                    FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
+                    FILE_STACK_HASKELL => Some(ProjectType::Stack),
+                    FILE_SBT_BUILD => Some(ProjectType::SBT),
+                    FILE_MVN_BUILD => Some(ProjectType::Maven),
+                    _ => None,
+                };
+                if let Some(project_type) = p_type {
+                    self.it.skip_current_dir();
+                    return Some(Project {
+                        project_type,
+                        path: entry.path().to_path_buf(),
+                    });
+                }
+            }
+        }
+    }
+}
+
+pub fn scan<P: AsRef<path::Path>>(p: &P) -> impl Iterator<Item = Project> {
+    ProjectIter {
+        it: walkdir::WalkDir::new(p)
+            .follow_links(SYMLINK_FOLLOW)
+            .into_iter(),
+    }
 }
 
 fn dir_size(path: &path::Path) -> u64 {
