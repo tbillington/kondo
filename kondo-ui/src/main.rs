@@ -121,9 +121,15 @@ fn main() {
     let event_sink = launcher.get_external_handle();
 
     let mut cd = env::current_dir().unwrap();
-    cd.pop();
+    // cd.pop();
     let scan_dir = String::from(cd.to_str().unwrap());
     let scan_dir_len = scan_dir.len();
+
+    let scan_dir_len_display_offset = if scan_dir_len <= 3 {
+        scan_dir_len
+    } else {
+        scan_dir_len + 1
+    };
 
     let sd2 = scan_dir.clone();
 
@@ -133,7 +139,7 @@ fn main() {
             let name = project.name();
 
             let project = Project {
-                display: name[scan_dir_len + 1..].to_string(),
+                display: name[scan_dir_len_display_offset..].to_string(),
                 path: name,
                 p_type: project.type_name().into(),
                 artifact_size: project_size.artifact_size,
