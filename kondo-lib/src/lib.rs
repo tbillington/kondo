@@ -163,7 +163,6 @@ fn dir_size(path: &path::Path) -> u64 {
 }
 
 pub fn pretty_size(size: u64) -> String {
-    let size = size;
     const KIBIBYTE: u64 = 1024;
     const MEBIBYTE: u64 = 1_048_576;
     const GIBIBYTE: u64 = 1_073_741_824;
