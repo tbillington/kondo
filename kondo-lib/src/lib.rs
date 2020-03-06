@@ -116,16 +116,12 @@ impl Project {
                     Ok(file_name) => file_name,
                 };
                 let size = dir_size(&entry.path());
-                let artifact_dir = match artifact_dirs.contains(&file_name.as_str()) {
-                    true => {
-                        artifact_size += size;
-                        true
-                    }
-                    false => {
-                        non_artifact_size += size;
-                        false
-                    }
-                };
+                let artifact_dir = artifact_dirs.contains(&file_name.as_str());
+                if artifact_dir {
+                    artifact_size += size;
+                } else {
+                    non_artifact_size += size;
+                }
                 dirs.push((file_name, size, artifact_dir));
             }
         }
