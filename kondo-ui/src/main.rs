@@ -1,15 +1,10 @@
 use std::{env, sync::Arc, thread};
 
 use druid::{
-    commands::{OPEN_FILE, SHOW_OPEN_PANEL},
-    lens::{self, LensExt},
-    widget::{
-        Button, Container, Controller, ControllerHost, Flex, Label, List, Scroll, ViewSwitcher,
-        WidgetExt,
-    },
-    AppLauncher, BoxConstraints, Color, Command, Data, Env, Event, EventCtx, FileDialogOptions,
-    FileInfo, LayoutCtx, Lens, LifeCycle, LifeCycleCtx, LocalizedString, PaintCtx, Selector, Size,
-    UpdateCtx, Widget, WidgetPod, WindowDesc,
+    commands::OPEN_FILE,
+    widget::{Button, Controller, Flex, Label, List, Scroll, ViewSwitcher, WidgetExt},
+    AppLauncher, Command, Data, Env, Event, EventCtx, Lens, LocalizedString, Selector, Widget,
+    WindowDesc,
 };
 
 use kondo_lib::{clean, pretty_size, scan};
