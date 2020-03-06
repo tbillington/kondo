@@ -50,7 +50,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn artifact_dirs(&self) -> impl Iterator<Item = &&str> {
+    pub fn artifact_dirs(&self) -> impl Iterator<Item = &str> {
         match self.project_type {
             ProjectType::Cargo => PROJECT_CARGO_DIRS.iter(),
             ProjectType::Node => PROJECT_NODE_DIRS.iter(),
@@ -59,6 +59,7 @@ impl Project {
             ProjectType::SBT => PROJECT_SBT_DIRS.iter(),
             ProjectType::Maven => PROJECT_MVN_DIRS.iter(),
         }
+        .copied()
     }
 
     pub fn name(&self) -> String {
