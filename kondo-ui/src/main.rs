@@ -17,6 +17,7 @@ use kondo_lib::{clean, pretty_size, scan};
 const ADD_ITEM: Selector = Selector::new("event.add-item");
 const SET_ACTIVE_ITEM: Selector = Selector::new("event.set-active-item");
 const CLEAN_PATH: Selector = Selector::new("event.clean-path");
+const SCAN_COMPLETE: Selector = Selector::new("event.scan-complete");
 
 struct EventHandler {}
 
@@ -44,6 +45,7 @@ struct AppData {
     artifact_size: u64,
     non_artifact_size: u64,
     saved: u64,
+    scan_complete: bool,
 }
 
 impl EventHandler {
@@ -103,6 +105,11 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 // let file_info = cmd.get_object::<FileInfo>().unwrap().clone();
                 // println!("{:?}", file_info);
             }
+            Event::Command(cmd) if cmd.selector == SCAN_COMPLETE => {
+                data.scan_complete = true;
+                ctx.request_layout();
+                ctx.request_paint();
+            }
             _ => (),
         }
         _child.event(ctx, event, data, _env);
@@ -111,7 +118,7 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
 
 fn main() {
     let window = WindowDesc::new(make_ui)
-        .title(LocalizedString::new("kondo-main-window-title").with_placeholder("Kondo"))
+        .title(LocalizedString::new("kondo-main-window-title").with_placeholder("Kondo 🧹"))
         .window_size((1000.0, 500.0));
 
     let launcher = AppLauncher::with_window(window);
@@ -140,6 +147,9 @@ fn main() {
             };
             event_sink.submit_command(ADD_ITEM, project, None).unwrap();
         });
+        event_sink
+            .submit_command(SCAN_COMPLETE, false, None)
+            .unwrap();
     });
 
     launcher
@@ -151,6 +161,7 @@ fn main() {
             artifact_size: 0,
             non_artifact_size: 0,
             saved: 0,
+            scan_complete: false,
         })
         .expect("launch failed");
 }
@@ -158,9 +169,20 @@ fn main() {
 fn make_ui() -> impl Widget<AppData> {
     let mut root = Flex::column();
 
-    root.add_child(Label::new("Kondo").padding(10.0).center(), 0.0);
+    root.add_child(Label::new("Kondo 🧹").padding(10.0).center(), 0.0);
     root.add_child(
-        Label::new(|data: &AppData, _env: &_| format!("scanning {}", data.scan_dir)).center(),
+        Label::new(|data: &AppData, _env: &_| {
+            format!(
+                "{} {}",
+                data.scan_dir,
+                if data.scan_complete {
+                    "scan complete ✔️"
+                } else {
+                    "scan in progress... 📡"
+                }
+            )
+        })
+        .center(),
         0.0,
     );
 
@@ -179,7 +201,12 @@ fn make_ui() -> impl Widget<AppData> {
     );
 
     let mut path_listing = Flex::column();
-    path_listing.add_child(Label::new("Projects").padding(10.0).center(), 0.0);
+    path_listing.add_child(
+        Label::new(|data: &AppData, _env: &_| format!("{} Projects", data.items.len()))
+            .padding(10.0)
+            .center(),
+        0.0,
+    );
     let l = Scroll::new(
         List::new(|| {
             Button::new(
@@ -217,10 +244,11 @@ fn make_ui() -> impl Widget<AppData> {
             vert.add_child(
                 Label::new(|data: &AppData, _env: &_| match data.active_item {
                     Some(ref project) => format!(
-                        "{} {} / {}",
+                        "{} {} / {}, {} project",
                         project.display,
                         pretty_size(project.artifact_size),
-                        pretty_size(project.artifact_size + project.non_artifact_size)
+                        pretty_size(project.artifact_size + project.non_artifact_size),
+                        project.p_type
                     ),
                     None => String::from("none selected"),
                 }),
