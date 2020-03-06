@@ -245,19 +245,39 @@ pub fn pretty_size(size: u64) -> String {
 }
 
 pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
-    // for p in match project_type_from_dir(project_path.into()) {
-    //     Some(p) => p,
-    //     None => return Ok(()),
-    // } {
-    //     for ad in p
-    //         .artifact_dirs()
-    //         .map(|ad| path::PathBuf::from(project_path).join(ad))
-    //         .filter(|ad| ad.exists())
-    //     {
-    //         if let Err(e) = fs::remove_dir_all(&ad) {
-    //             eprintln!("error removing directory {:?}: {:?}", ad, e);
-    //         }
-    //     }
-    // }
+    let project = fs::read_dir(project_path)?
+        .filter_map(|rd| rd.ok())
+        .find_map(|dir_entry| {
+            let file_name = dir_entry.file_name().into_string().ok()?;
+            let p_type = match file_name.as_str() {
+                FILE_CARGO_TOML => Some(ProjectType::Cargo),
+                FILE_PACKAGE_JSON => Some(ProjectType::Node),
+                FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
+                FILE_STACK_HASKELL => Some(ProjectType::Stack),
+                FILE_SBT_BUILD => Some(ProjectType::SBT),
+                FILE_MVN_BUILD => Some(ProjectType::Maven),
+                _ => None,
+            };
+            if let Some(project_type) = p_type {
+                return Some(Project {
+                    project_type,
+                    path: project_path.into(),
+                });
+            }
+            None
+        });
+
+    if let Some(project) = project {
+        for artifact_dir in project
+            .artifact_dirs()
+            .map(|ad| path::PathBuf::from(project_path).join(ad))
+            .filter(|ad| ad.exists())
+        {
+            if let Err(e) = fs::remove_dir_all(&artifact_dir) {
+                eprintln!("error removing directory {:?}: {:?}", artifact_dir, e);
+            }
+        }
+    }
+
     Ok(())
 }
