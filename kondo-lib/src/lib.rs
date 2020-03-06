@@ -245,19 +245,19 @@ pub fn pretty_size(size: u64) -> String {
 }
 
 pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
-    for p in match project_type_from_dir(project_path.into()) {
-        Some(p) => p,
-        None => return Ok(()),
-    } {
-        for ad in p
-            .artifact_dirs()
-            .map(|ad| path::PathBuf::from(project_path).join(ad))
-            .filter(|ad| ad.exists())
-        {
-            if let Err(e) = fs::remove_dir_all(&ad) {
-                eprintln!("error removing directory {:?}: {:?}", ad, e);
-            }
-        }
-    }
+    // for p in match project_type_from_dir(project_path.into()) {
+    //     Some(p) => p,
+    //     None => return Ok(()),
+    // } {
+    //     for ad in p
+    //         .artifact_dirs()
+    //         .map(|ad| path::PathBuf::from(project_path).join(ad))
+    //         .filter(|ad| ad.exists())
+    //     {
+    //         if let Err(e) = fs::remove_dir_all(&ad) {
+    //             eprintln!("error removing directory {:?}: {:?}", ad, e);
+    //         }
+    //     }
+    // }
     Ok(())
 }

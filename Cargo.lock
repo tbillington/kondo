@@ -242,7 +242,6 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.5.0"
-source = "git+https://github.com/xi-editor/druid.git?branch=controller#8bac3861dd8e35558580cf52cca06c340041c50a"
 dependencies = [
  "druid-derive",
  "druid-shell",
@@ -260,7 +259,6 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.2.0"
-source = "git+https://github.com/xi-editor/druid.git?branch=controller#8bac3861dd8e35558580cf52cca06c340041c50a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -270,7 +268,6 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.5.0"
-source = "git+https://github.com/xi-editor/druid.git?branch=controller#8bac3861dd8e35558580cf52cca06c340041c50a"
 dependencies = [
  "cairo-rs",
  "cfg-if",
@@ -691,6 +688,7 @@ version = "0.1.0"
 dependencies = [
  "druid",
  "kondo-lib",
+ "quote",
 ]
 
 [[package]]

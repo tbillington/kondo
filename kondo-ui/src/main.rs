@@ -2,7 +2,11 @@ use std::{env, sync::Arc, thread};
 
 use druid::{
     commands::{OPEN_FILE, SHOW_OPEN_PANEL},
-    widget::{Button, Container, Controller, ControllerHost, Flex, Label, List, Scroll, WidgetExt},
+    lens::{self, LensExt},
+    widget::{
+        Button, Container, Controller, ControllerHost, Flex, Label, List, Scroll, ViewSwitcher,
+        WidgetExt,
+    },
     AppLauncher, BoxConstraints, Color, Command, Data, Env, Event, EventCtx, FileDialogOptions,
     FileInfo, LayoutCtx, Lens, LifeCycle, LifeCycleCtx, LocalizedString, PaintCtx, Selector, Size,
     UpdateCtx, Widget, WidgetPod, WindowDesc,
@@ -16,14 +20,29 @@ const CLEAN_PATH: Selector = Selector::new("event.clean-path");
 
 struct EventHandler {}
 
-type ItemData = (String, u64);
+#[derive(Debug, Clone, Data, Lens)]
+struct Project {
+    display: String,
+    path: String,
+    p_type: String,
+    artifact_size: u64,
+    non_artifact_size: u64,
+    dirs: Arc<Vec<(String, u64, bool)>>,
+}
+
+impl PartialEq for Project {
+    fn eq(&self, other: &Project) -> bool {
+        self.path.eq(&other.path)
+    }
+}
 
 #[derive(Debug, Clone, Data, Lens)]
 struct AppData {
-    items: Arc<Vec<ItemData>>,
-    active_item: Option<ItemData>,
+    items: Arc<Vec<Project>>,
+    active_item: Option<Project>,
     scan_dir: String,
-    total: u64,
+    artifact_size: u64,
+    non_artifact_size: u64,
     saved: u64,
 }
 
@@ -44,18 +63,19 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
     ) {
         match event {
             Event::Command(cmd) if cmd.selector == ADD_ITEM => {
-                let new_elem = cmd.get_object::<ItemData>().unwrap().clone();
-                data.total += new_elem.1;
+                let project = cmd.get_object::<Project>().unwrap().clone();
+                data.artifact_size += project.artifact_size;
+                data.non_artifact_size += project.non_artifact_size;
                 let items = Arc::make_mut(&mut data.items);
                 let pos = items
-                    .binary_search_by(|probe| new_elem.1.cmp(&probe.1))
+                    .binary_search_by(|probe| project.artifact_size.cmp(&probe.artifact_size))
                     .unwrap_or_else(|e| e);
-                items.insert(pos, new_elem);
+                items.insert(pos, project);
                 ctx.request_layout();
                 ctx.request_paint();
             }
             Event::Command(cmd) if cmd.selector == SET_ACTIVE_ITEM => {
-                let active_item = cmd.get_object::<ItemData>().unwrap().clone();
+                let active_item = cmd.get_object::<Project>().unwrap().clone();
                 data.active_item = Some(active_item);
                 ctx.request_layout();
                 ctx.request_paint();
@@ -66,12 +86,12 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 // );
             }
             Event::Command(cmd) if cmd.selector == CLEAN_PATH => {
-                let active_item = cmd.get_object::<ItemData>().unwrap().clone();
-                clean(&active_item.0).unwrap();
-                data.total -= active_item.1;
-                data.saved += active_item.1;
+                let active_item = cmd.get_object::<Project>().unwrap().clone();
+                clean(&active_item.path).unwrap();
+                data.artifact_size -= active_item.artifact_size;
+                data.saved += active_item.artifact_size;
                 let items = Arc::make_mut(&mut data.items);
-                let pos = items.binary_search_by(|probe| active_item.1.cmp(&probe.1));
+                let pos = items.binary_search_by(|probe| active_item.path.cmp(&probe.path));
                 if let Ok(pos) = pos {
                     items.remove(pos);
                 }
@@ -87,24 +107,6 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
         }
         _child.event(ctx, event, data, _env);
     }
-
-    // fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx, _event: &LifeCycle, _data: &AppData, _: &Env) {
-    // }
-
-    // fn update(&mut self, ctx: &mut UpdateCtx, old_data: &AppData, data: &AppData, _: &Env) {
-    //     if !old_data.same(data) {
-    //         ctx.request_paint()
-    //     }
-    // }
-
-    // fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &AppData, _: &Env) -> Size {
-    //     self.children.widget.layout()
-    //     // bc.max()
-    // }
-
-    // fn paint(&mut self, _ctx: &mut PaintCtx, _data: &AppData, _env: &Env) {
-    //     self.children.widget.paint_with_offset(_ctx, _data, _env);
-    // }
 }
 
 fn main() {
@@ -116,28 +118,38 @@ fn main() {
 
     let event_sink = launcher.get_external_handle();
 
-    let scan_dir = String::from(env::current_dir().unwrap().to_str().unwrap());
+    let mut cd = env::current_dir().unwrap();
+    cd.pop();
+    let scan_dir = String::from(cd.to_str().unwrap());
+    let scan_dir_len = scan_dir.len();
 
     let sd2 = scan_dir.clone();
 
     thread::spawn(move || {
-        scan(&sd2)
-            .filter_map(|p| match p.size() {
-                0 => None,
-                size => Some((p.name(), size)),
-            })
-            .for_each(|p| {
-                event_sink.submit_command(ADD_ITEM, p, None).unwrap();
-            });
+        scan(&sd2).for_each(|project| {
+            let project_size = project.size_dirs();
+            let name = project.name();
+
+            let project = Project {
+                display: name[scan_dir_len + 1..].to_string(),
+                path: name,
+                p_type: project.type_name().into(),
+                artifact_size: project_size.artifact_size,
+                non_artifact_size: project_size.non_artifact_size,
+                dirs: Arc::new(project_size.dirs),
+            };
+            event_sink.submit_command(ADD_ITEM, project, None).unwrap();
+        });
     });
 
     launcher
         .use_simple_logger()
         .launch(AppData {
-            items: Arc::new(vec![]),
+            items: Arc::new(Vec::new()),
             active_item: None,
             scan_dir,
-            total: 0,
+            artifact_size: 0,
+            non_artifact_size: 0,
             saved: 0,
         })
         .expect("launch failed");
@@ -155,8 +167,10 @@ fn make_ui() -> impl Widget<AppData> {
     root.add_child(
         Label::new(|data: &AppData, _env: &_| {
             format!(
-                "total: {} recovered: {}",
-                pretty_size(data.total),
+                "artifacts {} non-artifacts {} total {} recovered {}",
+                pretty_size(data.artifact_size),
+                pretty_size(data.non_artifact_size),
+                pretty_size(data.artifact_size + data.non_artifact_size),
                 pretty_size(data.saved)
             )
         })
@@ -169,12 +183,17 @@ fn make_ui() -> impl Widget<AppData> {
     let l = Scroll::new(
         List::new(|| {
             Button::new(
-                |item: &ItemData, _env: &_| format!("{}: {}", item.0, pretty_size(item.1)),
-                |_ctx, data, _env| {
-                    _ctx.submit_command(
-                        Command::new(SET_ACTIVE_ITEM, (data.0.clone(), data.1)),
-                        None,
+                |item: &Project, _env: &_| {
+                    format!(
+                        "{} ({}) {} / {}",
+                        item.display,
+                        item.p_type,
+                        pretty_size(item.artifact_size),
+                        pretty_size(item.artifact_size + item.non_artifact_size)
                     )
+                },
+                |_ctx, data, _env| {
+                    _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, data.clone()), None)
                 },
             )
         })
@@ -197,11 +216,46 @@ fn make_ui() -> impl Widget<AppData> {
             );
             vert.add_child(
                 Label::new(|data: &AppData, _env: &_| match data.active_item {
-                    Some((ref name, size)) => format!("{} {}", name, pretty_size(size)),
+                    Some(ref project) => format!(
+                        "{} {} / {}",
+                        project.display,
+                        pretty_size(project.artifact_size),
+                        pretty_size(project.artifact_size + project.non_artifact_size)
+                    ),
                     None => String::from("none selected"),
                 }),
                 0.0,
             );
+
+            let view_switcher = ViewSwitcher::new(
+                |data: &AppData, _env| data.active_item.clone(),
+                |selector, _env| match selector {
+                    None => Box::new(Label::new("None")),
+                    Some(project) => {
+                        let project: &Project = project;
+                        let mut l = Flex::column();
+                        for (i, (dir_name, size, artifact)) in project.dirs.iter().enumerate() {
+                            l.add_child(
+                                Label::new(format!(
+                                    " {}─ {}{} {}",
+                                    if i == project.dirs.len() - 1 {
+                                        "└"
+                                    } else {
+                                        "├"
+                                    },
+                                    dir_name,
+                                    if *artifact { "🗑️" } else { "" },
+                                    pretty_size(*size)
+                                )),
+                                0.0,
+                            );
+                        }
+                        Box::new(l)
+                    }
+                },
+            );
+            vert.add_child(view_switcher, 0.0);
+
             vert.add_child(
                 Button::new(
                     "Clean project of artifacts",

@@ -7,7 +7,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-druid = { git = "https://github.com/xi-editor/druid.git", branch = "controller", version = "0.5" }
+#druid = { git = "https://github.com/xi-editor/druid.git", branch = "controller", version = "0.5" }
+quote = "=1.0.2" # temporary for https://users.rust-lang.org/t/failure-derive-compilation-error/39062
+
+[dependencies.druid]
+path = "../../druid/druid"
+version = "*"
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
