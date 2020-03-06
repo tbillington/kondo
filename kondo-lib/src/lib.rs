@@ -1,6 +1,6 @@
 use walkdir;
 
-use std::path;
+use std::{fs, path};
 
 const SYMLINK_FOLLOW: bool = true;
 
@@ -49,6 +49,13 @@ pub struct Project {
     pub path: path::PathBuf,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProjectSize {
+    pub artifact_size: u64,
+    pub non_artifact_size: u64,
+    pub dirs: Vec<(String, u64, bool)>,
+}
+
 impl Project {
     pub fn artifact_dirs(&self) -> impl Iterator<Item = &str> {
         match self.project_type {
@@ -70,6 +77,64 @@ impl Project {
         self.artifact_dirs()
             .map(|p| dir_size(&self.path.join(p)))
             .sum()
+    }
+
+    pub fn size_dirs(&self) -> ProjectSize {
+        let mut artifact_size = 0;
+        let mut non_artifact_size = 0;
+        let mut dirs = Vec::new();
+
+        let project_root = match fs::read_dir(&self.path) {
+            Err(_) => {
+                return ProjectSize {
+                    artifact_size,
+                    non_artifact_size,
+                    dirs,
+                }
+            }
+            Ok(rd) => rd,
+        };
+
+        let artifact_dirs: Vec<&str> = self.artifact_dirs().collect();
+
+        for entry in project_root.filter_map(|rd| rd.ok()) {
+            let file_type = match entry.file_type() {
+                Err(_) => continue,
+                Ok(file_type) => file_type,
+            };
+
+            if file_type.is_file() {
+                if let Ok(metadata) = entry.metadata() {
+                    non_artifact_size += metadata.len();
+                }
+                continue;
+            }
+
+            if file_type.is_dir() {
+                let file_name = match entry.file_name().into_string() {
+                    Err(_) => continue,
+                    Ok(file_name) => file_name,
+                };
+                let size = dir_size(&entry.path());
+                let artifact_dir = match artifact_dirs.contains(&file_name.as_str()) {
+                    true => {
+                        artifact_size += size;
+                        true
+                    }
+                    false => {
+                        non_artifact_size += size;
+                        false
+                    }
+                };
+                dirs.push((file_name, size, artifact_dir));
+            }
+        }
+
+        ProjectSize {
+            artifact_size,
+            non_artifact_size,
+            dirs,
+        }
     }
 
     pub fn type_name(&self) -> &str {
