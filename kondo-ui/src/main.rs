@@ -84,17 +84,21 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
             }
             Event::Command(cmd) if cmd.selector == CLEAN_PATH => {
                 let active_item = cmd.get_object::<Project>().unwrap().clone();
-                clean(&active_item.path).unwrap();
-                data.artifact_size -= active_item.artifact_size;
-                data.saved += active_item.artifact_size;
                 let items = Arc::make_mut(&mut data.items);
-                let pos = items.binary_search_by(|probe| active_item.path.cmp(&probe.path));
-                if let Ok(pos) = pos {
+                let pos = items
+                    .iter()
+                    .position(|probe| probe.path == active_item.path);
+                if let Some(pos) = pos {
+                    clean(&active_item.path).unwrap();
+                    data.artifact_size -= active_item.artifact_size;
+                    data.saved += active_item.artifact_size;
                     items.remove(pos);
+                    data.active_item = None;
+                    ctx.request_layout();
+                    ctx.request_paint();
+                } else {
+                    eprintln!("tried to clean & remove project but it was not found in the project list. display '{}' path '{}'", active_item.display, active_item.path);
                 }
-                data.active_item = None;
-                ctx.request_layout();
-                ctx.request_paint();
             }
             Event::Command(cmd) if cmd.selector == OPEN_FILE => {
                 // let file_info = cmd.get_object::<FileInfo>().unwrap().clone();
