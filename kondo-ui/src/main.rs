@@ -178,31 +178,28 @@ fn spawn_scanner_thread(
         .spawn(move || loop {
             match scan_starter_recv.recv().expect("scan starter thread") {
                 ScanStarterThreadMsg::StartScan(p) => {
-                    let event_sink = event_sink.clone();
-                    thread::spawn(move || {
-                        scan(&p).for_each(|project| {
-                            let name = project.name();
-                            let project_size = project.size_dirs();
-                            let display = path::Path::new(&name)
-                                .file_name()
-                                .map(|s| s.to_str().unwrap_or(&name))
-                                .unwrap_or(&name);
-                            let project = Project {
-                                display: String::from(display),
-                                path: name,
-                                p_type: project.type_name().into(),
-                                artifact_size: project_size.artifact_size,
-                                non_artifact_size: project_size.non_artifact_size,
-                                dirs: Arc::new(project_size.dirs),
-                            };
-                            event_sink
-                                .submit_command(ADD_ITEM, project, None)
-                                .expect("error submitting ADD_ITEM command");
-                        });
+                    scan(&p).for_each(|project| {
+                        let name = project.name();
+                        let project_size = project.size_dirs();
+                        let display = path::Path::new(&name)
+                            .file_name()
+                            .map(|s| s.to_str().unwrap_or(&name))
+                            .unwrap_or(&name);
+                        let project = Project {
+                            display: String::from(display),
+                            path: name,
+                            p_type: project.type_name().into(),
+                            artifact_size: project_size.artifact_size,
+                            non_artifact_size: project_size.non_artifact_size,
+                            dirs: Arc::new(project_size.dirs),
+                        };
                         event_sink
-                            .submit_command(SCAN_COMPLETE, false, None)
-                            .expect("error submitting SCAN_COMPLETE command");
+                            .submit_command(ADD_ITEM, project, None)
+                            .expect("error submitting ADD_ITEM command");
                     });
+                    event_sink
+                        .submit_command(SCAN_COMPLETE, false, None)
+                        .expect("error submitting SCAN_COMPLETE command");
                 }
             }
         })?;
