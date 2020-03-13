@@ -41,9 +41,9 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - run: cd kondo
       - name: Execute tests
         uses: actions-rs/cargo@v1
-        run: cd kondo
         with:
           command: test
           args: --all
