@@ -1,10 +1,14 @@
-use std::{env, sync::Arc, thread};
+use std::{
+    env, path,
+    sync::{mpsc, Arc},
+    thread,
+};
 
 use druid::{
-    commands::OPEN_FILE,
+    commands::{OPEN_FILE, SHOW_OPEN_PANEL},
     widget::{Button, Controller, Flex, Label, List, Scroll, ViewSwitcher, WidgetExt},
-    AppLauncher, Command, Data, Env, Event, EventCtx, Lens, LocalizedString, Selector, Widget,
-    WindowDesc,
+    AppLauncher, Command, Data, Env, Event, EventCtx, FileDialogOptions, FileInfo, Lens,
+    LocalizedString, Selector, Widget, WindowDesc,
 };
 
 use kondo_lib::{clean, pretty_size, scan};
@@ -13,6 +17,7 @@ const ADD_ITEM: Selector = Selector::new("event.add-item");
 const SET_ACTIVE_ITEM: Selector = Selector::new("event.set-active-item");
 const CLEAN_PATH: Selector = Selector::new("event.clean-path");
 const SCAN_COMPLETE: Selector = Selector::new("event.scan-complete");
+const SCAN_START: Selector = Selector::new("event.scan-start");
 
 struct EventHandler {}
 
@@ -41,6 +46,11 @@ struct AppData {
     non_artifact_size: u64,
     saved: u64,
     scan_complete: bool,
+    scan_starter_send: Arc<mpsc::SyncSender<ScanStarterThreadMsg>>,
+}
+
+enum ScanStarterThreadMsg {
+    StartScan(String),
 }
 
 impl EventHandler {
@@ -76,11 +86,6 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 data.active_item = Some(active_item);
                 ctx.request_layout();
                 ctx.request_paint();
-
-                // ctx.submit_command(
-                //     Command::new(SHOW_OPEN_PANEL, FileDialogOptions::new()),
-                //     None,
-                // );
             }
             Event::Command(cmd) if cmd.selector == CLEAN_PATH => {
                 let active_item = cmd.get_object::<Project>().unwrap().clone();
@@ -101,13 +106,28 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 }
             }
             Event::Command(cmd) if cmd.selector == OPEN_FILE => {
-                // let file_info = cmd.get_object::<FileInfo>().unwrap().clone();
-                // println!("{:?}", file_info);
+                let file_info = cmd.get_object::<FileInfo>().unwrap().clone();
+                data.scan_dir = String::from(file_info.path().to_str().unwrap());
+            }
+            Event::Command(cmd) if cmd.selector == SCAN_START => {
+                data.active_item = None;
+                data.artifact_size = 0;
+                Arc::make_mut(&mut data.items).clear();
+                data.non_artifact_size = 0;
+                // data.saved = 0 // unsure if this should be reset between dirs or not 🤔
+                data.scan_complete = false;
+
+                data.scan_starter_send
+                    .send(ScanStarterThreadMsg::StartScan(data.scan_dir.clone()))
+                    .expect("error sending SCAN_START");
             }
             Event::Command(cmd) if cmd.selector == SCAN_COMPLETE => {
                 data.scan_complete = true;
                 ctx.request_layout();
                 ctx.request_paint();
+            }
+            Event::Command(cmd) => {
+                println!("unhandled cmd: {:?}", cmd);
             }
             _ => (),
         }
@@ -125,36 +145,41 @@ fn main() {
     let event_sink = launcher.get_external_handle();
 
     let mut cd = env::current_dir().unwrap();
-    // cd.pop();
+    cd.pop();
     let scan_dir = String::from(cd.to_str().unwrap());
-    let scan_dir_len = scan_dir.len();
 
-    let scan_dir_len_display_offset = if scan_dir_len <= 3 {
-        scan_dir_len
-    } else {
-        scan_dir_len + 1
-    };
+    let (scan_starter_send, scan_starter_recv) = mpsc::sync_channel::<ScanStarterThreadMsg>(0);
 
-    let sd2 = scan_dir.clone();
-
-    thread::spawn(move || {
-        scan(&sd2).for_each(|project| {
-            let project_size = project.size_dirs();
-            let name = project.name();
-
-            let project = Project {
-                display: name[scan_dir_len_display_offset..].to_string(),
-                path: name,
-                p_type: project.type_name().into(),
-                artifact_size: project_size.artifact_size,
-                non_artifact_size: project_size.non_artifact_size,
-                dirs: Arc::new(project_size.dirs),
-            };
-            event_sink.submit_command(ADD_ITEM, project, None).unwrap();
-        });
-        event_sink
-            .submit_command(SCAN_COMPLETE, false, None)
-            .unwrap();
+    thread::spawn(move || loop {
+        match scan_starter_recv.recv().expect("scan starter thread") {
+            ScanStarterThreadMsg::StartScan(p) => {
+                let event_sink = event_sink.clone();
+                thread::spawn(move || {
+                    scan(&p).for_each(|project| {
+                        let name = project.name();
+                        let project_size = project.size_dirs();
+                        let display = path::Path::new(&name)
+                            .file_name()
+                            .map(|s| s.to_str().unwrap_or(&name))
+                            .unwrap_or(&name);
+                        let project = Project {
+                            display: String::from(display),
+                            path: name,
+                            p_type: project.type_name().into(),
+                            artifact_size: project_size.artifact_size,
+                            non_artifact_size: project_size.non_artifact_size,
+                            dirs: Arc::new(project_size.dirs),
+                        };
+                        event_sink
+                            .submit_command(ADD_ITEM, project, None)
+                            .expect("error submitting ADD_ITEM command");
+                    });
+                    event_sink
+                        .submit_command(SCAN_COMPLETE, false, None)
+                        .expect("error submitting SCAN_COMPLETE command");
+                });
+            }
+        }
     });
 
     launcher
@@ -167,27 +192,51 @@ fn main() {
             non_artifact_size: 0,
             saved: 0,
             scan_complete: false,
+            scan_starter_send: Arc::new(scan_starter_send),
         })
         .expect("launch failed");
 }
 
 fn make_ui() -> impl Widget<AppData> {
-    let mut root = Flex::column();
+    let mut root: Flex<AppData> = Flex::column();
 
     root.add_child(Label::new("Kondo 🧹").padding(10.0).center(), 0.0);
+
     root.add_child(
-        Label::new(|data: &AppData, _env: &_| {
-            format!(
-                "{} {}",
-                data.scan_dir,
-                if data.scan_complete {
-                    "scan complete ✔️"
-                } else {
-                    "scan in progress... 📡"
-                }
+        Flex::<AppData>::row()
+            .with_child(
+                Label::new(|data: &AppData, _env: &_| {
+                    format!(
+                        "{} {}",
+                        data.scan_dir,
+                        if data.scan_complete {
+                            "scan complete ✔️"
+                        } else {
+                            "scan in progress... 📡"
+                        }
+                    )
+                }),
+                0.0,
             )
-        })
-        .center(),
+            .with_child(
+                Button::new("Select Directory", |ctx, _data: &mut AppData, _env| {
+                    ctx.submit_command(
+                        Command::new(
+                            SHOW_OPEN_PANEL,
+                            FileDialogOptions::new().select_directories(),
+                        ),
+                        None,
+                    );
+                }),
+                0.0,
+            )
+            .with_child(
+                Button::new("Start Scan", |ctx, _data: &mut AppData, _env| {
+                    ctx.submit_command(Command::new(SCAN_START, ()), None);
+                }),
+                0.0,
+            )
+            .center(),
         0.0,
     );
 
