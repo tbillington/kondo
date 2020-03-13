@@ -15,9 +15,9 @@ required_arg $CROSS 'CROSS'
 required_arg $TARGET_TRIPLE '<Target Triple>'
 
 if [ -z "$RELEASE_BUILD" ]; then
-    $CROSS build --target $TARGET_TRIPLE
-    $CROSS build --target $TARGET_TRIPLE --all-features
+    $CROSS build --target $TARGET_TRIPLE --bin kondo
+    $CROSS build --target $TARGET_TRIPLE --all-features --bin kondo
 else
-    $CROSS build --target $TARGET_TRIPLE --all-features --release
+    $CROSS build --target $TARGET_TRIPLE --all-features --release --bin kondo
 fi
 
