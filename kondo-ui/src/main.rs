@@ -1,5 +1,6 @@
 use std::{
-    env, path,
+    cmp::Ordering,
+    path,
     sync::{mpsc, Arc},
     thread,
 };
@@ -37,6 +38,31 @@ impl PartialEq for Project {
     }
 }
 
+impl Ord for Project {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.artifact_size.cmp(&other.artifact_size) {
+            Ordering::Equal => self.display.cmp(&other.display),
+            Ordering::Greater => Ordering::Less,
+            Ordering::Less => Ordering::Greater,
+        }
+    }
+}
+
+impl PartialOrd for Project {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Project {}
+
+#[derive(Debug, Clone, Data, PartialEq)]
+enum ScanStatus {
+    NotStarted,
+    InProgrss,
+    Complete,
+}
+
 #[derive(Debug, Clone, Data, Lens)]
 struct AppData {
     items: Arc<Vec<Project>>,
@@ -45,7 +71,7 @@ struct AppData {
     artifact_size: u64,
     non_artifact_size: u64,
     saved: u64,
-    scan_complete: bool,
+    scan_complete: ScanStatus,
     scan_starter_send: Arc<mpsc::SyncSender<ScanStarterThreadMsg>>,
 }
 
@@ -74,9 +100,7 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 data.artifact_size += project.artifact_size;
                 data.non_artifact_size += project.non_artifact_size;
                 let items = Arc::make_mut(&mut data.items);
-                let pos = items
-                    .binary_search_by(|probe| project.artifact_size.cmp(&probe.artifact_size))
-                    .unwrap_or_else(|e| e);
+                let pos = items.binary_search(&project).unwrap_or_else(|e| e);
                 items.insert(pos, project);
                 ctx.request_layout();
                 ctx.request_paint();
@@ -97,7 +121,16 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                     clean(&active_item.path).unwrap();
                     data.artifact_size -= active_item.artifact_size;
                     data.saved += active_item.artifact_size;
-                    items.remove(pos);
+                    if let Some(item) = items.get_mut(pos) {
+                        item.artifact_size = 0;
+                        let dirs = Arc::make_mut(&mut item.dirs);
+                        for (_, size, artifact_dir) in dirs.iter_mut() {
+                            if *artifact_dir {
+                                *size = 0;
+                            }
+                        }
+                    }
+                    items.sort_unstable();
                     data.active_item = None;
                     ctx.request_layout();
                     ctx.request_paint();
@@ -108,6 +141,7 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
             Event::Command(cmd) if cmd.selector == OPEN_FILE => {
                 let file_info = cmd.get_object::<FileInfo>().unwrap().clone();
                 data.scan_dir = String::from(file_info.path().to_str().unwrap());
+                ctx.submit_command(Command::new(SCAN_START, ()), None);
             }
             Event::Command(cmd) if cmd.selector == SCAN_START => {
                 data.active_item = None;
@@ -115,14 +149,14 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 Arc::make_mut(&mut data.items).clear();
                 data.non_artifact_size = 0;
                 // data.saved = 0 // unsure if this should be reset between dirs or not 🤔
-                data.scan_complete = false;
+                data.scan_complete = ScanStatus::InProgrss;
 
                 data.scan_starter_send
                     .send(ScanStarterThreadMsg::StartScan(data.scan_dir.clone()))
                     .expect("error sending SCAN_START");
             }
             Event::Command(cmd) if cmd.selector == SCAN_COMPLETE => {
-                data.scan_complete = true;
+                data.scan_complete = ScanStatus::Complete;
                 ctx.request_layout();
                 ctx.request_paint();
             }
@@ -143,10 +177,6 @@ fn main() {
     let launcher = AppLauncher::with_window(window);
 
     let event_sink = launcher.get_external_handle();
-
-    let mut cd = env::current_dir().unwrap();
-    cd.pop();
-    let scan_dir = String::from(cd.to_str().unwrap());
 
     let (scan_starter_send, scan_starter_recv) = mpsc::sync_channel::<ScanStarterThreadMsg>(0);
 
@@ -187,11 +217,11 @@ fn main() {
         .launch(AppData {
             items: Arc::new(Vec::new()),
             active_item: None,
-            scan_dir,
+            scan_dir: String::new(),
             artifact_size: 0,
             non_artifact_size: 0,
             saved: 0,
-            scan_complete: false,
+            scan_complete: ScanStatus::NotStarted,
             scan_starter_send: Arc::new(scan_starter_send),
         })
         .expect("launch failed");
@@ -209,10 +239,10 @@ fn make_ui() -> impl Widget<AppData> {
                     format!(
                         "{} {}",
                         data.scan_dir,
-                        if data.scan_complete {
-                            "scan complete ✔️"
-                        } else {
-                            "scan in progress... 📡"
+                        match data.scan_complete {
+                            ScanStatus::Complete => "scan complete ✔️",
+                            ScanStatus::InProgrss => "scan in progress... 📡",
+                            ScanStatus::NotStarted => "scan not started",
                         }
                     )
                 }),
@@ -227,12 +257,6 @@ fn make_ui() -> impl Widget<AppData> {
                         ),
                         None,
                     );
-                }),
-                0.0,
-            )
-            .with_child(
-                Button::new("Start Scan", |ctx, _data: &mut AppData, _env| {
-                    ctx.submit_command(Command::new(SCAN_START, ()), None);
                 }),
                 0.0,
             )
