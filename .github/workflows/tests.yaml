@@ -43,6 +43,7 @@ jobs:
           override: true
       - name: Execute tests
         uses: actions-rs/cargo@v1
+        run: cd kondo
         with:
           command: test
           args: --all
