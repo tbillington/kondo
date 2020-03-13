@@ -327,6 +327,13 @@ fn make_ui() -> impl Widget<AppData> {
             );
             vert.add_child(
                 Label::new(|data: &AppData, _env: &_| match data.active_item {
+                    Some(ref project) => project.path.clone(),
+                    None => String::from("none selected"),
+                }),
+                0.0,
+            );
+            vert.add_child(
+                Label::new(|data: &AppData, _env: &_| match data.active_item {
                     Some(ref project) => format!(
                         "{} {} / {}, {} project",
                         project.display,
