@@ -3,6 +3,9 @@ members = [
   "kondo",
   "kondo-lib",
 ]
+exclude = [
+  "kondo-ui"
+]
 
 [profile.release]
 incremental = false
