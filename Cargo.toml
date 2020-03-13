@@ -2,7 +2,9 @@
 members = [
   "kondo",
   "kondo-lib",
-  "kondo-ui",
+]
+exclude = [
+  "kondo-ui"
 ]
 
 [profile.release]
