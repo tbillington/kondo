@@ -8,8 +8,8 @@ use std::{
 use druid::{
     commands::{OPEN_FILE, SHOW_OPEN_PANEL},
     widget::{Button, Controller, Flex, Label, List, Scroll, ViewSwitcher, WidgetExt},
-    AppLauncher, Command, Data, Env, Event, EventCtx, FileDialogOptions, FileInfo, Lens,
-    LocalizedString, Selector, Widget, WindowDesc,
+    AppLauncher, Command, Data, Env, Event, EventCtx, ExtEventSink, FileDialogOptions, FileInfo,
+    Lens, LocalizedString, Selector, Widget, WindowDesc,
 };
 
 use kondo_lib::{clean, pretty_size, scan};
@@ -169,17 +169,10 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
     }
 }
 
-fn main() {
-    let window = WindowDesc::new(make_ui)
-        .title(LocalizedString::new("kondo-main-window-title").with_placeholder("Kondo 🧹"))
-        .window_size((1000.0, 500.0));
-
-    let launcher = AppLauncher::with_window(window);
-
-    let event_sink = launcher.get_external_handle();
-
-    let (scan_starter_send, scan_starter_recv) = mpsc::sync_channel::<ScanStarterThreadMsg>(0);
-
+fn spawn_scanner_thread(
+    scan_starter_recv: mpsc::Receiver<ScanStarterThreadMsg>,
+    event_sink: ExtEventSink,
+) {
     thread::spawn(move || loop {
         match scan_starter_recv.recv().expect("scan starter thread") {
             ScanStarterThreadMsg::StartScan(p) => {
@@ -211,6 +204,18 @@ fn main() {
             }
         }
     });
+}
+
+fn main() {
+    let window = WindowDesc::new(make_ui)
+        .title(LocalizedString::new("kondo-main-window-title").with_placeholder("Kondo 🧹"))
+        .window_size((1000.0, 500.0));
+
+    let launcher = AppLauncher::with_window(window);
+
+    let (scan_starter_send, scan_starter_recv) = mpsc::sync_channel::<ScanStarterThreadMsg>(0);
+
+    spawn_scanner_thread(scan_starter_recv, launcher.get_external_handle());
 
     launcher
         .use_simple_logger()
