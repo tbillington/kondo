@@ -8,8 +8,8 @@ use std::{
 use druid::{
     commands::{OPEN_FILE, SHOW_OPEN_PANEL},
     widget::{Button, Controller, Flex, Label, List, Scroll, ViewSwitcher, WidgetExt},
-    AppLauncher, Command, Data, Env, Event, EventCtx, ExtEventSink, FileDialogOptions, FileInfo,
-    Lens, LocalizedString, Selector, Widget, WindowDesc,
+    AppLauncher, Color, Command, Data, Env, Event, EventCtx, ExtEventSink, FileDialogOptions,
+    FileInfo, Lens, LocalizedString, Selector, Widget, WindowDesc,
 };
 
 use kondo_lib::{clean, pretty_size, scan};
@@ -236,7 +236,14 @@ fn main() {
 fn make_ui() -> impl Widget<AppData> {
     let mut root: Flex<AppData> = Flex::column();
 
-    root.add_child(Label::new("Kondo 🧹").padding(10.0).center(), 0.0);
+    root.add_child(
+        Label::new("Kondo 🧹")
+            .text_size(24.0)
+            .text_color(Color::rgb(0.5, 0.75, 1.0))
+            .padding(10.0)
+            .center(),
+        0.0,
+    );
 
     root.add_child(
         Flex::<AppData>::row()
@@ -391,6 +398,10 @@ fn make_ui() -> impl Widget<AppData> {
         }
 
         root.add_child(horiz, 1.0);
+
+        root.add_child(
+            Label::new("See the source, report a bug, or contribute at https://github.com/tbillington/kondo 🎉").text_size(18.0).padding(10.0).center(),0.0
+        )
     }
 
     let cw = EventHandler::new();
