@@ -224,7 +224,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.5.0"
-source = "git+https://github.com/xi-editor/druid.git#61bc5af45255fe338f05abe18ce98a365b78e3af"
+source = "git+https://github.com/xi-editor/druid.git#2022617f82e4abad619c9620a21a8a39af26cb30"
 dependencies = [
  "druid-derive",
  "druid-shell",
@@ -242,7 +242,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.2.0"
-source = "git+https://github.com/xi-editor/druid.git#61bc5af45255fe338f05abe18ce98a365b78e3af"
+source = "git+https://github.com/xi-editor/druid.git#2022617f82e4abad619c9620a21a8a39af26cb30"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -252,7 +252,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.5.0"
-source = "git+https://github.com/xi-editor/druid.git#61bc5af45255fe338f05abe18ce98a365b78e3af"
+source = "git+https://github.com/xi-editor/druid.git#2022617f82e4abad619c9620a21a8a39af26cb30"
 dependencies = [
  "cairo-rs",
  "cfg-if",
@@ -1110,9 +1110,9 @@ checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
 name = "standback"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "862b12b9db9c08d38b22f05d4cc13cccede37ae1785dcb639a28f80dc268c631"
+checksum = "4edf667ea8f60afc06d6aeec079d20d5800351109addec1faea678a8663da4e1"
 
 [[package]]
 name = "stdweb"
@@ -1188,9 +1188,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d179e6a6f7cab265cad71394b7ca1a9be87309c083732a5da20f4e8ad483bf3"
+checksum = "6329a7835505d46f5f3a9a2c237f8d6bf5ca6f0015decb3698ba57fcdbb609ba"
 dependencies = [
  "cfg-if",
  "libc",
