@@ -1,4 +1,11 @@
-# 0.2
+# 0.3 2020-03-15
+
+- Add basic graphic user interface 🎉 ([#19](https://github.com/tbillington/kondo/pull/19))
+- Optimise project discovery phase for a massive 97.5% runtime reduction 🎉 ([#20](https://github.com/tbillington/kondo/pull/20))
+- Break project into cargo workspace ([#18](https://github.com/tbillington/kondo/pull/18))
+- Improve path handling, skip folders that don't exist ([#17](https://github.com/tbillington/kondo/pull/17))
+
+# 0.2 2020-02-21
 
 - Added Haskell Stack project support
 - Added Github actions for testing, linting, and deployment
