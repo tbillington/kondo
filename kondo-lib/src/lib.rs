@@ -10,6 +10,7 @@ const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
 const FILE_MVN_BUILD: &str = "pom.xml";
+const FILE_UNREAL_SUFFIX: &str = ".uproject";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -25,6 +26,13 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
+const PROJECT_UNREAL_DIRS: [&str; 5] = [
+    "Binaries",
+    "Build",
+    "Saved",
+    "DerivedDataCache",
+    "Intermediate",
+];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -32,6 +40,7 @@ const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
+const PROJECT_UNREAL_NAME: &str = "Unreal";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -41,6 +50,7 @@ pub enum ProjectType {
     Stack,
     SBT,
     Maven,
+    Unreal,
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +75,7 @@ impl Project {
             ProjectType::Stack => PROJECT_STACK_DIRS.iter(),
             ProjectType::SBT => PROJECT_SBT_DIRS.iter(),
             ProjectType::Maven => PROJECT_MVN_DIRS.iter(),
+            ProjectType::Unreal => PROJECT_UNREAL_DIRS.iter(),
         }
         .copied()
     }
@@ -141,6 +152,7 @@ impl Project {
             ProjectType::Stack => PROJECT_STACK_NAME,
             ProjectType::SBT => PROJECT_SBT_NAME,
             ProjectType::Maven => PROJECT_MVN_NAME,
+            ProjectType::Unreal => PROJECT_UNREAL_NAME,
         }
     }
 }
@@ -190,6 +202,9 @@ impl Iterator for ProjectIter {
                     FILE_STACK_HASKELL => Some(ProjectType::Stack),
                     FILE_SBT_BUILD => Some(ProjectType::SBT),
                     FILE_MVN_BUILD => Some(ProjectType::Maven),
+                    file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
+                        Some(ProjectType::Unreal)
+                    }
                     _ => None,
                 };
                 if let Some(project_type) = p_type {

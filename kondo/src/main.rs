@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (size, name, type_name) in project_sizes.iter() {
         writeln!(
             &mut write_handle,
-            "{:>10} {:<5} {}",
+            "{:>10} {:<6} {}",
             pretty_size(*size),
             type_name,
             name
