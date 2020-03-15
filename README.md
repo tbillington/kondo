@@ -32,7 +32,7 @@ You can install `kondo` via [Cargo](https://doc.rust-lang.org/cargo/) with `carg
 
 ### Graphic User Interface
 
-![image](https://user-images.githubusercontent.com/2771466/76200757-45698f00-6246-11ea-81a2-48baf5b84ba3.png)
+![image](https://user-images.githubusercontent.com/2771466/76697113-f52b7a80-66e6-11ea-8ea1-4e1b6eb3f798.png)
 
 ### Command Line
 
