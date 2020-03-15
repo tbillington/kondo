@@ -10,7 +10,7 @@ deleting the unnecessary files.
 documentation = "https://github.com/tbillington/kondo"
 homepage = "https://github.com/tbillington/kondo"
 repository = "https://github.com/tbillington/kondo"
-readme = "README.md"
+readme = "../README.md"
 categories = ["command-line-utilities"]
 license = "MIT"
 exclude = ["test_dir"]
