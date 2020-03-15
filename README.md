@@ -25,7 +25,7 @@ If you don't have Cargo installed you can download a binary for your platform fr
 
 ![image](https://user-images.githubusercontent.com/2771466/75639044-00ac8980-5c83-11ea-9cf8-5e30e0b933b0.png)
 
-**GUI ([coming soon!](https://github.com/tbillington/kondo/pull/19))**
+**GUI**
 
 ![image](https://user-images.githubusercontent.com/2771466/76200757-45698f00-6246-11ea-81a2-48baf5b84ba3.png)
 
