@@ -12,3 +12,9 @@ druid = { git = "https://github.com/xi-editor/druid.git", version = "0.5" }
 [dependencies.kondo-lib]
 path = "../kondo-lib"
 version = "*"
+
+[profile.release]
+incremental = false
+lto = true
+codegen-units = 1
+opt-level = "z"
