@@ -4,7 +4,7 @@
 
 Cleans unneeded directories and files from your system.
 
-It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects. Currently `kondo` doesn't actually delete any files.
+It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects.
 
 Supports:
 
@@ -14,27 +14,37 @@ Supports:
 - [SBT](https://www.scala-sbt.org/) projects
 - [Haskell Stack](https://docs.haskellstack.org/) projects
 - [Maven](https://maven.apache.org/) projects
+- [Unreal Engine](https://www.unrealengine.com/) projects
 
 ## Installation
 
-You can install `kondo` via Cargo with `cargo install kondo`.
+### Graphic User Interface
 
-If you don't have Cargo installed you can download a binary for your platform from the [Releases](https://github.com/tbillington/kondo/releases) page.
+Windows and Mac builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page.
 
-## Screenshot
+### Command line
 
-![image](https://user-images.githubusercontent.com/2771466/75639044-00ac8980-5c83-11ea-9cf8-5e30e0b933b0.png)
+Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page.
 
-**GUI**
+You can install `kondo` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo`.
+
+## Screenshots
+
+### Graphic User Interface
 
 ![image](https://user-images.githubusercontent.com/2771466/76200757-45698f00-6246-11ea-81a2-48baf5b84ba3.png)
 
-## Roadmap
+### Command Line
 
-- Actually delete (with prompt)
-- Handle Unity cache, editor cache
+![image](https://user-images.githubusercontent.com/2771466/75639044-00ac8980-5c83-11ea-9cf8-5e30e0b933b0.png)
 
 ## Operation
+
+### Graphic User Interface
+
+Launch `kondo-ui`, select a directory to be scanned, evaluate & clean directories as needed.
+
+### Command Line Interface
 
 Running `kondo` without a directory specified will run in the current directory.
 
@@ -92,6 +102,12 @@ C:\Users\Trent\code\kondo\test_dir\health-dots\Obj
 C:\Users\Trent\code\kondo\test_dir\health-dots\MemoryCaptures
 C:\Users\Trent\code\kondo\test_dir\health-dots\Build
 ```
+
+## Building/Development
+
+To build `kondo` you can run `cargo build` from the projects root directory.
+
+To build `kondo-ui` you must first navigate into the `kondo-ui` directory, then you can run `cargo build`. Because we use [druid](https://github.com/xi-editor/druid) for the interface you'll need to satisfy druid's [platform specific dependencies](https://github.com/xi-editor/druid#platform-notes).
 
 ## Similar Projects
 
