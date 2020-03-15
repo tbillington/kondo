@@ -4,6 +4,7 @@
 - Rewrite project discovery phase for a massive 97.5% runtime reduction 🎉 This includes a correctness fix, projects within the artifacts of other projects will not be listed and therefore will not be included more than once in the size total (previously they were). ([#20](https://github.com/tbillington/kondo/pull/20))
 - Break project into cargo workspace ([#18](https://github.com/tbillington/kondo/pull/18))
 - Improve path handling, skip folders that don't exist ([#17](https://github.com/tbillington/kondo/pull/17))
+- Add Unreal 4 project support ([#597efd9](https://github.com/tbillington/kondo/commit/597efd9a9100272f408ebd1f531113ea11da3192))
 
 # 0.2 2020-02-21
 
