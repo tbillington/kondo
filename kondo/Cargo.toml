@@ -1,6 +1,6 @@
 [package]
 name = "kondo"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Trent Billington <trent.h.billington@gmail.com>"]
 description = """
 kondo is a filesystem cleaning tool that recursively searches directories
@@ -18,7 +18,7 @@ edition = "2018"
 
 
 [dependencies]
-structopt = "0.3.9"
+structopt = "0.3"
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
