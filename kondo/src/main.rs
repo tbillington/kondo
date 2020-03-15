@@ -47,9 +47,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
 
-    let stdout = io::stdout();
-    let mut write_handle = stdout.lock();
-
     if let Some(command) = opt.command {
         for dir in project_dirs.iter() {
             let dir_base = &dir.path;
@@ -62,6 +59,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     };
+
+    let stdout = io::stdout();
+    let mut write_handle = stdout.lock();
 
     if opt.artifact_dirs {
         for dir in project_dirs.iter() {
