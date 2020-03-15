@@ -4,6 +4,8 @@
 
 Cleans unneeded directories and files from your system.
 
+![image](https://user-images.githubusercontent.com/2771466/76697113-f52b7a80-66e6-11ea-8ea1-4e1b6eb3f798.png)
+
 It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects.
 
 Supports:
@@ -27,16 +29,6 @@ Windows and Mac builds are available on the [Releases](https://github.com/tbilli
 Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page.
 
 You can install `kondo` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo`.
-
-## Screenshots
-
-### Graphic User Interface
-
-![image](https://user-images.githubusercontent.com/2771466/76697113-f52b7a80-66e6-11ea-8ea1-4e1b6eb3f798.png)
-
-### Command Line
-
-![image](https://user-images.githubusercontent.com/2771466/75639044-00ac8980-5c83-11ea-9cf8-5e30e0b933b0.png)
 
 ## Operation
 
