@@ -65,6 +65,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    let stdout = io::stdout();
+    let mut write_handle = stdout.lock();
+
     let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
 
     match opt.subcommand {
@@ -73,24 +76,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let dirs = if dirs.is_empty() {
                 vec![cd]
             } else {
-                dirs.into_iter().map(|d| path_canonicalise(&cd, d)).collect()
+                dirs.into_iter()
+                    .map(|d| path_canonicalise(&cd, d))
+                    .collect()
             };
-            let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
+            let projects = dirs.iter().flat_map(scan).map(|p: Project| {
+                (
+                    p.name(),
+                    p.artifact_dirs()
+                        .map(|d| (d.to_string(), p.path.join(d)))
+                        .collect::<Vec<_>>(),
+                )
+            });
+            let mut total = 0;
             if dry_run {
-                project_dirs.iter().for_each(|p: &Project| {
-                    println!(
-                        "{}\n  └─ {}",
-                        p.name(),
-                        p.artifact_dirs()
-                            .map(|d| format!(
-                                "{} ({})",
-                                d,
-                                pretty_size(dir_size(&p.path.join(d)))
-                            ))
-                            .collect::<Vec<_>>()
-                            .join("\n  └─ ")
-                    )
-                });
+                for (name, dirs) in projects {
+                    writeln!(&mut write_handle, "{}", name)?;
+                    for (i, (name, path)) in dirs.iter().enumerate() {
+                        write!(
+                            &mut write_handle,
+                            "  {}─ {} ",
+                            if i == dirs.len() - 1 { "└" } else { "├" },
+                            name,
+                        )?;
+                        let size = dir_size(path);
+                        total += size;
+                        writeln!(&mut write_handle, "({})", pretty_size(size))?;
+                    }
+                }
+                writeln!(&mut write_handle, "Disk saving: {}", pretty_size(total))?;
             } else {
             }
             return Ok(());
@@ -114,9 +128,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     };
-
-    let stdout = io::stdout();
-    let mut write_handle = stdout.lock();
 
     if opt.artifact_dirs {
         for dir in project_dirs.iter() {
