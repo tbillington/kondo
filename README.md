@@ -22,11 +22,13 @@ Supports:
 
 ### Graphic User Interface
 
-Windows and Mac builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page.
+Windows and Mac builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo-ui`.
+
+You can install `kondo-ui` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo-ui`. Note you'll still need [druid's platform specific dependencies](https://github.com/xi-editor/druid#platform-notes) on mac and linux.
 
 ### Command line
 
-Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page.
+Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo`.
 
 You can install `kondo` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo`.
 
