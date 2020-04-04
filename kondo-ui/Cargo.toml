@@ -20,7 +20,7 @@ druid = "0.5.0"
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
-version = "*"
+version = "0.1"
 
 [profile.release]
 incremental = false
