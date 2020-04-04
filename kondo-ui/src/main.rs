@@ -7,7 +7,10 @@ use std::{
 
 use druid::{
     commands::{OPEN_FILE, SHOW_OPEN_PANEL},
-    widget::{Button, Controller, Flex, Label, List, Scroll, ViewSwitcher, WidgetExt},
+    widget::{
+        Button, Controller, CrossAxisAlignment, Flex, FlexParams, Label, List, Scroll,
+        ViewSwitcher, WidgetExt,
+    },
     AppLauncher, Color, Command, Data, Env, Event, EventCtx, ExtEventSink, FileDialogOptions,
     FileInfo, Lens, LocalizedString, Selector, Widget, WindowDesc,
 };
@@ -238,31 +241,27 @@ fn make_ui() -> impl Widget<AppData> {
 
     root.add_child(
         Label::new("Kondo 🧹")
-            .text_size(24.0)
-            .text_color(Color::rgb(0.5, 0.75, 1.0))
+            .with_text_size(24.0)
+            .with_text_color(Color::rgb(0.5, 0.75, 1.0))
             .padding(10.0)
             .center(),
-        0.0,
     );
 
     root.add_child(
         Flex::<AppData>::row()
-            .with_child(
-                Label::new(|data: &AppData, _env: &_| {
-                    format!(
-                        "{} {}",
-                        data.scan_dir,
-                        match data.scan_complete {
-                            ScanStatus::Complete => "scan complete ✔️",
-                            ScanStatus::InProgrss => "scan in progress... 📡",
-                            ScanStatus::NotStarted => "scan not started",
-                        }
-                    )
-                }),
-                0.0,
-            )
-            .with_child(
-                Button::new("Select Directory", |ctx, _data: &mut AppData, _env| {
+            .with_child(Label::new(|data: &AppData, _env: &_| {
+                format!(
+                    "{} {}",
+                    data.scan_dir,
+                    match data.scan_complete {
+                        ScanStatus::Complete => "scan complete ✔️",
+                        ScanStatus::InProgrss => "scan in progress... 📡",
+                        ScanStatus::NotStarted => "scan not started",
+                    }
+                )
+            }))
+            .with_child(Button::new("Select Directory").on_click(
+                |ctx, _data: &mut AppData, _env| {
                     ctx.submit_command(
                         Command::new(
                             SHOW_OPEN_PANEL,
@@ -270,11 +269,9 @@ fn make_ui() -> impl Widget<AppData> {
                         ),
                         None,
                     );
-                }),
-                0.0,
-            )
+                },
+            ))
             .center(),
-        0.0,
     );
 
     root.add_child(
@@ -288,58 +285,54 @@ fn make_ui() -> impl Widget<AppData> {
             )
         })
         .center(),
-        0.0,
     );
 
     let mut path_listing = Flex::column();
     path_listing.add_child(
-        Label::new(|data: &AppData, _env: &_| format!("{} Projects", data.items.len()))
+        Label::new(|data: &AppData, _env: &_| format!("{} Project(s)", data.items.len()))
             .padding(10.0)
             .center(),
-        0.0,
     );
     let l = Scroll::new(
         List::new(|| {
-            Button::new(
-                |item: &Project, _env: &_| {
-                    format!(
-                        "{} ({}) {} / {}",
-                        item.display,
-                        item.p_type,
-                        pretty_size(item.artifact_size),
-                        pretty_size(item.artifact_size + item.non_artifact_size)
-                    )
-                },
-                |_ctx, data, _env| {
-                    _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, data.clone()), None)
-                },
-            )
+            Button::new(|item: &Project, _env: &_| {
+                format!(
+                    "{} ({}) {} / {}",
+                    item.display,
+                    item.p_type,
+                    pretty_size(item.artifact_size),
+                    pretty_size(item.artifact_size + item.non_artifact_size)
+                )
+            })
+            .on_click(|_ctx, data, _env| {
+                _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, data.clone()), None)
+            })
         })
         .lens(AppData::items)
         .padding(2.5),
     )
     .vertical();
-    path_listing.add_child(l, 1.0);
+    path_listing.add_flex_child(l, FlexParams::new(1.0, CrossAxisAlignment::Start));
 
     {
         let mut horiz = Flex::row();
 
-        horiz.add_child(path_listing, 1.0);
+        horiz.add_flex_child(path_listing, 1.0);
 
         {
             let mut vert = Flex::column();
-            vert.add_child(
+            vert.add_flex_child(
                 Label::new("Active Item Information").padding(10.0).center(),
-                0.0,
+                FlexParams::new(0.0, CrossAxisAlignment::Start),
             );
-            vert.add_child(
+            vert.add_flex_child(
                 Label::new(|data: &AppData, _env: &_| match data.active_item {
                     Some(ref project) => project.path.clone(),
                     None => String::from("none selected"),
                 }),
-                0.0,
+                FlexParams::new(0.0, CrossAxisAlignment::Start),
             );
-            vert.add_child(
+            vert.add_flex_child(
                 Label::new(|data: &AppData, _env: &_| match data.active_item {
                     Some(ref project) => format!(
                         "{} {} / {}, {} project",
@@ -350,18 +343,18 @@ fn make_ui() -> impl Widget<AppData> {
                     ),
                     None => String::from("none selected"),
                 }),
-                0.0,
+                FlexParams::new(0.0, CrossAxisAlignment::Start),
             );
 
             let view_switcher = ViewSwitcher::new(
                 |data: &AppData, _env| data.active_item.clone(),
-                |selector, _env| match selector {
+                |selector, _data, _env| match selector {
                     None => Box::new(Label::new("None")),
                     Some(project) => {
                         let project: &Project = project;
                         let mut l = Flex::column();
                         for (i, (dir_name, size, artifact)) in project.dirs.iter().enumerate() {
-                            l.add_child(
+                            l.add_flex_child(
                                 Label::new(format!(
                                     " {}─ {}{} {}",
                                     if i == project.dirs.len() - 1 {
@@ -373,34 +366,42 @@ fn make_ui() -> impl Widget<AppData> {
                                     if *artifact { "🗑️" } else { "" },
                                     pretty_size(*size)
                                 )),
-                                0.0,
+                                FlexParams::new(0.0, CrossAxisAlignment::Start),
                             );
                         }
                         Box::new(l)
                     }
                 },
             );
-            vert.add_child(view_switcher, 0.0);
+            vert.add_flex_child(
+                view_switcher,
+                FlexParams::new(0.0, CrossAxisAlignment::Start),
+            );
 
-            vert.add_child(
-                Button::new(
-                    "Clean project of artifacts",
+            vert.add_flex_child(
+                Button::new("Clean project of artifacts").on_click(
                     |ctx, data: &mut AppData, _env| {
                         if let Some(active_item) = data.active_item.clone() {
                             ctx.submit_command(Command::new(CLEAN_PATH, active_item), None);
                         }
                     },
                 ),
-                0.0,
+                FlexParams::new(0.0, CrossAxisAlignment::Start),
             );
 
-            horiz.add_child(vert.padding(2.5), 1.0);
+            horiz.add_flex_child(
+                vert.padding(2.5),
+                FlexParams::new(1.0, CrossAxisAlignment::Start),
+            );
         }
 
-        root.add_child(horiz, 1.0);
+        root.add_flex_child(horiz, 1.0);
 
         root.add_child(
-            Label::new("See the source, report a bug, or contribute at https://github.com/tbillington/kondo 🎉").text_size(18.0).padding(10.0).center(),0.0
+            Label::new("See the source, report a bug, or contribute at https://github.com/tbillington/kondo 🎉")
+                .with_text_size(18.0)
+                .padding(10.0)
+                .center()
         )
     }
 
