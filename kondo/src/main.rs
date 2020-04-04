@@ -2,7 +2,7 @@ use structopt::StructOpt;
 
 use std::{env, io, path, process};
 
-use kondo_lib::{pretty_size, scan, Project};
+use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan, Project};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
@@ -19,9 +19,29 @@ struct Opt {
     #[structopt(short, long)]
     command: Option<String>,
 
+    /// Run subcommand
+    #[structopt(subcommand)]
+    subcommand: Option<Command>,
+
     /// The directories to examine
     #[structopt(name = "DIRS", parse(from_os_str))]
     dirs: Vec<std::path::PathBuf>,
+}
+
+#[derive(StructOpt, Debug)]
+enum Command {
+    /// Clean projects in specified paths
+    Clean {
+        /// Show projects that will be cleaned without actually cleaning them
+        #[structopt(long)]
+        dry_run: bool,
+
+        /// The directories to examine
+        #[structopt(name = "DIRS", parse(from_os_str))]
+        dirs: Vec<std::path::PathBuf>,
+    },
+    /// List projects in specified paths
+    List,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,6 +66,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
+
+    match opt.subcommand {
+        Some(Command::Clean { dry_run, dirs }) => {
+            let cd = env::current_dir()?;
+            let dirs = if dirs.is_empty() {
+                vec![cd]
+            } else {
+                dirs.into_iter().map(|d| path_canonicalise(&cd, d)).collect()
+            };
+            let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
+            if dry_run {
+                project_dirs.iter().for_each(|p: &Project| {
+                    println!(
+                        "{}\n  └─ {}",
+                        p.name(),
+                        p.artifact_dirs()
+                            .map(|d| format!(
+                                "{} ({})",
+                                d,
+                                pretty_size(dir_size(&p.path.join(d)))
+                            ))
+                            .collect::<Vec<_>>()
+                            .join("\n  └─ ")
+                    )
+                });
+            } else {
+            }
+            return Ok(());
+        }
+        Some(Command::List) => {
+            println!("List");
+            return Ok(());
+        }
+        None => {}
+    }
 
     if let Some(command) = opt.command {
         for dir in project_dirs.iter() {
