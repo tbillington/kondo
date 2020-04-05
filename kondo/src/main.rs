@@ -40,8 +40,6 @@ enum Command {
         #[structopt(name = "DIRS", parse(from_os_str))]
         dirs: Vec<std::path::PathBuf>,
     },
-    /// List projects in specified paths
-    List,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -109,14 +107,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             writeln!(&mut write_handle, "Disk saving: {}", pretty_size(total))?;
             return Ok(());
         }
-        Some(Command::List) => {
-            println!("List");
-            return Ok(());
-        }
         None => {}
     }
 
-    return Ok(());
     let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
 
     if let Some(command) = opt.command {
