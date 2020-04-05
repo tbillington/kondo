@@ -127,7 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             writeln!(
                 &mut write_handle,
-                "{} project(s)\n  {} / {} artifacts, {:.1}%\n  {} / {} essential {:.1}%",
+                "{} project(s)\n  {} / {} artifacts, {:.1}%\n  {} / {} essential, {:.1}%",
                 projects.len(),
                 pretty_size(total_artifact_size),
                 pretty_size(total_artifact_size + total_non_artifact_size),
@@ -145,7 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 writeln!(
                     &mut write_handle,
-                    "{} {} project(s) ({:.0}%)\n  {} / {} artifacts, {:.1}%\n  {} / {} essential {:.1}%",
+                    "{} {} project(s) ({:.0}%)\n  {} / {} artifacts, {:.1}%\n  {} / {} essential, {:.1}%",
                     count,
                     project_type,
                     count as f64 / projects.len() as f64 * 100.0,
