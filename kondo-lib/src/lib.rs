@@ -144,7 +144,7 @@ impl Project {
         }
     }
 
-    pub fn type_name(&self) -> &str {
+    pub fn type_name(&self) ->  &'static str {
         match self.project_type {
             ProjectType::Cargo => PROJECT_CARGO_NAME,
             ProjectType::Node => PROJECT_NODE_NAME,

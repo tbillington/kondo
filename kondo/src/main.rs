@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 
-use std::{env, io, path, process};
+use std::{collections, env, io, path, process};
 
 use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan, Project};
 
@@ -103,7 +103,60 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         }
         Some(Command::Stats { dirs }) => {
-            writeln!(&mut write_handle, "Stats!")?;
+            let dirs = prepare_directories(dirs)?;
+            let mut project_type_counts: collections::HashMap<&str, (u32, u64, u64)> =
+                collections::HashMap::with_capacity(10);
+            let mut total_artifact_size: u64 = 0;
+            let mut total_non_artifact_size: u64 = 0;
+            let projects = dirs
+                .iter()
+                .flat_map(scan)
+                .map(|p: Project| {
+                    let project_sizes = p.size_dirs();
+                    let (count, artifact_size, non_artifact_size) = project_type_counts
+                        .entry(p.type_name())
+                        .or_insert((0, 0, 0));
+                    *count += 1;
+                    *artifact_size += project_sizes.artifact_size;
+                    *non_artifact_size += project_sizes.non_artifact_size;
+                    total_artifact_size += project_sizes.artifact_size;
+                    total_non_artifact_size += project_sizes.non_artifact_size;
+                    (p, project_sizes)
+                })
+                .collect::<Vec<_>>();
+
+            writeln!(
+                &mut write_handle,
+                "{} project(s)\n  {} / {} artifacts, {:.1}%\n  {} / {} essential {:.1}%",
+                projects.len(),
+                pretty_size(total_artifact_size),
+                pretty_size(total_artifact_size + total_non_artifact_size),
+                total_artifact_size as f64 / (total_artifact_size + total_non_artifact_size) as f64
+                    * 100.0,
+                pretty_size(total_non_artifact_size),
+                pretty_size(total_artifact_size + total_non_artifact_size),
+                total_non_artifact_size as f64
+                    / (total_artifact_size + total_non_artifact_size) as f64
+                    * 100.0
+            )?;
+
+            for (project_type, (count, artifact_size, non_artifact_size)) in
+                project_type_counts.iter().map(|e| (*e.0, *e.1))
+            {
+                writeln!(
+                    &mut write_handle,
+                    "{} {} project(s) ({:.0}%)\n  {} / {} artifacts, {:.1}%\n  {} / {} essential {:.1}%",
+                    count,
+                    project_type,
+                    count as f64 / projects.len() as f64 * 100.0,
+                    pretty_size(artifact_size),
+                    pretty_size(artifact_size + non_artifact_size),
+                    artifact_size as f64 / (artifact_size + non_artifact_size) as f64 * 100.0,
+                    pretty_size(non_artifact_size),
+                    pretty_size(artifact_size + non_artifact_size),
+                    non_artifact_size as f64 / (artifact_size + non_artifact_size) as f64 * 100.0
+                )?;
+            }
             Ok(())
         }
         None => {
