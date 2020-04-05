@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 
-use std::{env, io, process};
+use std::{env, io, path, process};
 
 use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan, Project};
 
@@ -40,6 +40,25 @@ enum Command {
         #[structopt(name = "DIRS", parse(from_os_str))]
         dirs: Vec<std::path::PathBuf>,
     },
+    /// Stats
+    Stats {
+        /// The directories to examine
+        #[structopt(name = "DIRS", parse(from_os_str))]
+        dirs: Vec<std::path::PathBuf>,
+    },
+}
+
+fn prepare_directories(
+    dirs: Vec<path::PathBuf>,
+) -> Result<Vec<path::PathBuf>, Box<dyn std::error::Error>> {
+    let cd = env::current_dir()?;
+    Ok(if dirs.is_empty() {
+        vec![cd]
+    } else {
+        dirs.into_iter()
+            .map(|d| path_canonicalise(&cd, d))
+            .collect()
+    })
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -51,14 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match opt.subcommand {
         Some(Command::Clean { dry_run, dirs }) => {
-            let cd = env::current_dir()?;
-            let dirs = if dirs.is_empty() {
-                vec![cd]
-            } else {
-                dirs.into_iter()
-                    .map(|d| path_canonicalise(&cd, d))
-                    .collect()
-            };
+            let dirs = prepare_directories(dirs)?;
             let project_dirs = dirs.iter().flat_map(scan);
             let mut total = 0;
             let mut artifact_dirs = Vec::with_capacity(10); // pre-allocated vec to reduce allocations
@@ -90,15 +102,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             writeln!(&mut write_handle, "Disk saving: {}", pretty_size(total))?;
             Ok(())
         }
+        Some(Command::Stats { dirs }) => {
+            writeln!(&mut write_handle, "Stats!")?;
+            Ok(())
+        }
         None => {
-            let cd = env::current_dir()?;
-            let dirs = if opt.dirs.is_empty() {
-                vec![cd]
-            } else {
-                opt.dirs.into_iter()
-                    .map(|d| path_canonicalise(&cd, d))
-                    .collect()
-            };
+            let dirs = prepare_directories(opt.dirs)?;
             let project_dirs: Vec<Project> = dirs.iter().flat_map(scan).collect();
 
             if let Some(command) = opt.command {
