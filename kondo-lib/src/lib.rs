@@ -155,6 +155,19 @@ impl Project {
             ProjectType::Unreal => PROJECT_UNREAL_NAME,
         }
     }
+
+    /// Deletes the project's artifact directories and their contents
+    pub fn clean(&self) {
+        for artifact_dir in self
+            .artifact_dirs()
+            .map(|ad| self.path.join(ad))
+            .filter(|ad| ad.exists())
+        {
+            if let Err(e) = fs::remove_dir_all(&artifact_dir) {
+                eprintln!("error removing directory {:?}: {:?}", artifact_dir, e);
+            }
+        }
+    }
 }
 
 fn is_hidden(entry: &walkdir::DirEntry) -> bool {
@@ -227,7 +240,7 @@ pub fn scan<P: AsRef<path::Path>>(p: &P) -> impl Iterator<Item = Project> {
     }
 }
 
-fn dir_size(path: &path::Path) -> u64 {
+pub fn dir_size(path: &path::Path) -> u64 {
     walkdir::WalkDir::new(path)
         .follow_links(SYMLINK_FOLLOW)
         .into_iter()
@@ -295,4 +308,12 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
     }
 
     Ok(())
+}
+
+pub fn path_canonicalise(base: &path::PathBuf, tail: path::PathBuf) -> path::PathBuf {
+    if tail.is_absolute() {
+        tail
+    } else {
+        base.join(tail).canonicalize().expect("Unable to canonicalize!")
+    }
 }
