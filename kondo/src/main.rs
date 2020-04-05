@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 
-use std::{env, io, path, process};
+use std::{env, io, process};
 
 use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan, Project};
 
