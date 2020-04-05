@@ -71,10 +71,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match opt.subcommand {
         Some(Command::Clean { dry_run, dirs }) => {
             let dirs = prepare_directories(dirs)?;
-            let project_dirs = dirs.iter().flat_map(scan);
             let mut total = 0;
             let mut artifact_dirs = Vec::with_capacity(10); // pre-allocated vec to reduce allocations
-            for project in project_dirs {
+            for project in dirs.iter().flat_map(scan) {
                 writeln!(&mut write_handle, "{}", project.name())?;
                 artifact_dirs.extend(
                     project
