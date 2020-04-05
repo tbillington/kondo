@@ -26,4 +26,3 @@ version = "0.1"
 incremental = false
 lto = true
 codegen-units = 1
-opt-level = "z"
