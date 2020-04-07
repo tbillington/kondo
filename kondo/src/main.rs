@@ -3,6 +3,7 @@ use structopt::StructOpt;
 use std::{collections, env, io, path, process};
 
 use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan, Project};
+use io::StdoutLock;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
@@ -66,7 +67,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::from_args();
 
     let stdout = io::stdout();
-    let mut write_handle = stdout.lock();
+    let mut write_handle: StdoutLock = stdout.lock();
+    
 
     match opt.subcommand {
         Some(Command::Clean { dry_run, dirs }) => {
@@ -87,9 +89,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if i == dirs.len() - 1 { "└" } else { "├" },
                         name,
                     )?;
+                    write_handle.flush()?;
                     let size = dir_size(path);
                     total += size;
                     write!(&mut write_handle, " ({})", pretty_size(size))?;
+                    write_handle.flush()?;
                     if !dry_run {
                         project.clean();
                         write!(&mut write_handle, " ✔")?;
