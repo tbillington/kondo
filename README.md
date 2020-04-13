@@ -106,3 +106,5 @@ To build `kondo-ui` you must first navigate into the `kondo-ui` directory, then 
 ## Similar Projects
 
 - [The Tin Summer](https://github.com/vmchale/tin-summer)
+- [Detox](https://github.com/whitfin/detox)
+- [Sweep](https://github.com/woubuc/sweep)
