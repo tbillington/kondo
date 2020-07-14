@@ -17,10 +17,10 @@ use druid::{
 
 use kondo_lib::{clean, pretty_size, scan};
 
-const ADD_ITEM: Selector = Selector::new("event.add-item");
-const SET_ACTIVE_ITEM: Selector = Selector::new("event.set-active-item");
-const CLEAN_PATH: Selector = Selector::new("event.clean-path");
-const SCAN_COMPLETE: Selector = Selector::new("event.scan-complete");
+const ADD_ITEM: Selector<Project> = Selector::new("event.add-item");
+const SET_ACTIVE_ITEM: Selector<Project> = Selector::new("event.set-active-item");
+const CLEAN_PATH: Selector<Project> = Selector::new("event.clean-path");
+const SCAN_COMPLETE: Selector<bool> = Selector::new("event.scan-complete");
 const SCAN_START: Selector = Selector::new("event.scan-start");
 
 struct EventHandler {}
@@ -98,8 +98,8 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
         _env: &Env,
     ) {
         match event {
-            Event::Command(cmd) if cmd.selector == ADD_ITEM => {
-                let project = cmd.get_object::<Project>().unwrap().clone();
+            Event::Command(cmd) if cmd.is(ADD_ITEM) => {
+                let project = cmd.get::<Project>(ADD_ITEM).unwrap().clone();
                 data.artifact_size += project.artifact_size;
                 data.non_artifact_size += project.non_artifact_size;
                 let items = Arc::make_mut(&mut data.items);
@@ -108,14 +108,14 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                 ctx.request_layout();
                 ctx.request_paint();
             }
-            Event::Command(cmd) if cmd.selector == SET_ACTIVE_ITEM => {
-                let active_item = cmd.get_object::<Project>().unwrap().clone();
+            Event::Command(cmd) if cmd.is(SET_ACTIVE_ITEM) => {
+                let active_item = cmd.get::<Project>(SET_ACTIVE_ITEM).unwrap().clone();
                 data.active_item = Some(active_item);
                 ctx.request_layout();
                 ctx.request_paint();
             }
-            Event::Command(cmd) if cmd.selector == CLEAN_PATH => {
-                let active_item = cmd.get_object::<Project>().unwrap().clone();
+            Event::Command(cmd) if cmd.is(CLEAN_PATH) => {
+                let active_item = cmd.get::<Project>(CLEAN_PATH).unwrap().clone();
                 let items = Arc::make_mut(&mut data.items);
                 let pos = items
                     .iter()
@@ -141,12 +141,12 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                     eprintln!("tried to clean & remove project but it was not found in the project list. display '{}' path '{}'", active_item.display, active_item.path);
                 }
             }
-            Event::Command(cmd) if cmd.selector == OPEN_FILE => {
-                let file_info = cmd.get_object::<FileInfo>().unwrap().clone();
+            Event::Command(cmd) if cmd.is(OPEN_FILE) => {
+                let file_info = cmd.get::<FileInfo>(OPEN_FILE).unwrap().clone();
                 data.scan_dir = String::from(file_info.path().to_str().unwrap());
                 ctx.submit_command(Command::new(SCAN_START, ()), None);
             }
-            Event::Command(cmd) if cmd.selector == SCAN_START => {
+            Event::Command(cmd) if cmd.is(SCAN_START) => {
                 data.active_item = None;
                 data.artifact_size = 0;
                 Arc::make_mut(&mut data.items).clear();
@@ -158,7 +158,7 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
                     .send(ScanStarterThreadMsg::StartScan(data.scan_dir.clone()))
                     .expect("error sending SCAN_START");
             }
-            Event::Command(cmd) if cmd.selector == SCAN_COMPLETE => {
+            Event::Command(cmd) if cmd.is(SCAN_COMPLETE) => {
                 data.scan_complete = ScanStatus::Complete;
                 ctx.request_layout();
                 ctx.request_paint();

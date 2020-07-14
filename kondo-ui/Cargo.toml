@@ -16,7 +16,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-druid = "0.5.0"
+druid = "0.6.0"
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
