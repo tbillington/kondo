@@ -1,7 +1,8 @@
 # Unreleased
 
-- Remove all options and subcommands to re-focus the intent of Kondo
+- Remove all options and subcommands to re-focus the intent of Kondo 🧹
 - Default is now interactive mode, allowing users to choose options on a per-project basis
+- Update `druid` dependency to 0.6, this means we no longer rely on `cairo` on MacOS 🎉
 
 # 0.3 2020-03-15
 
