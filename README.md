@@ -4,7 +4,9 @@
 
 Cleans unneeded directories and files from your system.
 
-![image](https://user-images.githubusercontent.com/2771466/76697113-f52b7a80-66e6-11ea-8ea1-4e1b6eb3f798.png)
+![kondo gui](https://user-images.githubusercontent.com/2771466/76697113-f52b7a80-66e6-11ea-8ea1-4e1b6eb3f798.png)
+
+![kondo command line](https://user-images.githubusercontent.com/2771466/89015432-5c765e00-d35a-11ea-8e67-193f2688d660.png)
 
 It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects.
 
