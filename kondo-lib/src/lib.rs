@@ -1,5 +1,3 @@
-use walkdir;
-
 use std::{error, fs, path};
 
 const SYMLINK_FOLLOW: bool = true;
