@@ -1,6 +1,6 @@
 # Kondo 🧹
 
-![Kondo Tests](https://github.com/tbillington/kondo/workflows/Kondo%20Tests/badge.svg) ![Kondo Lints](https://github.com/tbillington/kondo/workflows/Kondo%20Lints/badge.svg)
+![Kondo Lints](https://github.com/tbillington/kondo/workflows/Kondo%20Lints/badge.svg)
 
 Cleans unneeded directories and files from your system.
 
@@ -46,55 +46,30 @@ Running `kondo` without a directory specified will run in the current directory.
 $ kondo
 ```
 
-Supplying an argument will tell `kondo` where to start.
+Supplying a path will tell `kondo` where to start. Multiple paths are supported.
 
 ```
-$ kondo code/my_project
+$ kondo code/my_project code/my_project_2
 ```
 
 ## Example Output
 
 ```
-$ kondo ~
-Scanning "C:/Users/Trent"
-3 projects found
-Calculating savings per project
-  (redacted 1000~ lines)
-  385.6MB UnityTestApp (Unity) C:\Users\Trent\code\UnityTestApp
-  458.7MB tokio (Cargo) C:\Users\Trent\code\tokio
-    1.5GB ui-testing (Node) C:\Users\Trent\code\ui-testing
-    4.0GB rust-analyzer (Cargo) C:\Users\Trent\code\rust-analyzer
-9.5GB possible savings
-```
+$ kondo ~/code
+/Users/choc/code/unity Cargo project
+  └─ target (489.1KiB)
+  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): y
+  deleted 489.1KiB
 
-## Options/Flags
+/Users/choc/code/multiplayer-kit/generator Cargo project
+  └─ target (874.3KiB)
+  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): n
 
-### Artifact Dirs
+/Users/choc/code/chat Cargo project
+  └─ target (37.2MiB)
+  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): q
 
-`kondo -a` will output a line-separated list of artifact directories you can delete to reclaim space.
-
-```
-$ kondo test_dir -a
-C:\Users\Trent\code\kondo\test_dir\node_project\node_modules
-C:\Users\Trent\code\kondo\test_dir\rust_project\target
-C:\Users\Trent\code\kondo\test_dir\health-dots\Temp
-C:\Users\Trent\code\kondo\test_dir\health-dots\Obj
-C:\Users\Trent\code\kondo\test_dir\health-dots\MemoryCaptures
-C:\Users\Trent\code\kondo\test_dir\health-dots\Build
-```
-
-### Command
-
-`kondo -c <COMMAND>` will run your supplied command for each artifact directory.
-
-```
-$ kondo test_dir -c echo
-C:\Users\Trent\code\kondo\test_dir\node_project\node_modules
-C:\Users\Trent\code\kondo\test_dir\rust_project\target
-C:\Users\Trent\code\kondo\test_dir\health-dots\Temp
-C:\Users\Trent\code\kondo\test_dir\health-dots\Obj
-C:\Users\Trent\code\kondo\test_dir\health-dots\MemoryCaptures
-C:\Users\Trent\code\kondo\test_dir\health-dots\Build
+Total bytes deleted: 489.1KiB
 ```
 
 ## Building/Development
