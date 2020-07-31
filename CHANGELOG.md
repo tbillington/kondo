@@ -1,4 +1,4 @@
-# Unreleased
+# 0.4 2020-07-31
 
 - Remove all options and subcommands to re-focus the intent of Kondo 🧹
 - Default is now interactive mode, allowing users to choose options on a per-project basis
