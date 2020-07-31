@@ -1,3 +1,8 @@
+# Unreleased
+
+- Remove all options and subcommands to re-focus the intent of Kondo
+- Default is now interactive mode, allowing users to choose options on a per-project basis
+
 # 0.3 2020-03-15
 
 - Add basic graphic user interface 🎉 ([#19](https://github.com/tbillington/kondo/pull/19))
