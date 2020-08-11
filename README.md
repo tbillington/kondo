@@ -32,6 +32,8 @@ You can install `kondo-ui` via [Cargo](https://doc.rust-lang.org/cargo/) with `c
 
 Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo`.
 
+You can install `kondo` via homebrew with `brew install kondo`.
+
 You can install `kondo` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo`.
 
 ## Operation
