@@ -30,6 +30,10 @@ You can install `kondo-ui` via [Cargo](https://doc.rust-lang.org/cargo/) with `c
 
 ### Command line
 
+<a href="https://repology.org/project/kondo/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/kondo.svg" alt="Packaging status">
+</a>
+
 Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo`.
 
 You can install `kondo` via homebrew with `brew install kondo`.
