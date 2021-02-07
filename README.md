@@ -19,6 +19,8 @@ Supports:
 - [Haskell Stack](https://docs.haskellstack.org/) projects
 - [Maven](https://maven.apache.org/) projects
 - [Unreal Engine](https://www.unrealengine.com/) projects
+- [Jupyter Notebook](https://jupyter.org/) projects
+- [Python](https://www.python.org/) projects
 
 ## Installation
 
