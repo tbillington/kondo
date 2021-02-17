@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 write_buffer.push_str(dir);
                 write_buffer.push_str(" (");
                 write_buffer.push_str(&pretty_size(size));
-                write_buffer.push_str(")");
+                write_buffer.push(')');
                 size
             })
             .sum::<u64>();

@@ -9,6 +9,8 @@ const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
 const FILE_MVN_BUILD: &str = "pom.xml";
 const FILE_UNREAL_SUFFIX: &str = ".uproject";
+const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
+const FILE_PYTHON_SUFFIX: &str = ".py";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -31,6 +33,8 @@ const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "DerivedDataCache",
     "Intermediate",
 ];
+const PROJECT_JUPYTER_DIRS: [&str; 1] = [".ipynb_checkpoints"];
+const PROJECT_PYTHON_DIRS: [&str; 1] = ["__pycache__"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -39,6 +43,8 @@ const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
 const PROJECT_UNREAL_NAME: &str = "Unreal";
+const PROJECT_JUPYTER_NAME: &str = "Jupyter";
+const PROJECT_PYTHON_NAME: &str = "Python";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -49,6 +55,8 @@ pub enum ProjectType {
     SBT,
     Maven,
     Unreal,
+    Jupyter,
+    Python,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +82,8 @@ impl Project {
             ProjectType::SBT => &PROJECT_SBT_DIRS,
             ProjectType::Maven => &PROJECT_MVN_DIRS,
             ProjectType::Unreal => &PROJECT_UNREAL_DIRS,
+            ProjectType::Jupyter => &PROJECT_JUPYTER_DIRS,
+            ProjectType::Python => &PROJECT_PYTHON_DIRS,
         }
     }
 
@@ -152,6 +162,8 @@ impl Project {
             ProjectType::SBT => PROJECT_SBT_NAME,
             ProjectType::Maven => PROJECT_MVN_NAME,
             ProjectType::Unreal => PROJECT_UNREAL_NAME,
+            ProjectType::Jupyter => PROJECT_JUPYTER_NAME,
+            ProjectType::Python => PROJECT_PYTHON_NAME,
         }
     }
 
@@ -218,6 +230,12 @@ impl Iterator for ProjectIter {
                     FILE_MVN_BUILD => Some(ProjectType::Maven),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
+                    }
+                    file_name if file_name.ends_with(FILE_JUPYTER_SUFFIX) => {
+                        Some(ProjectType::Jupyter)
+                    }
+                    file_name if file_name.ends_with(FILE_PYTHON_SUFFIX) => {
+                        Some(ProjectType::Python)
                     }
                     _ => None,
                 };
