@@ -26,6 +26,10 @@ Supports:
 
 ### Graphic User Interface
 
+<a href="https://repology.org/project/rust:kondo-ui/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/rust:kondo-ui.svg" alt="Packaging status">
+</a>
+
 Windows and Mac builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo-ui`.
 
 You can install `kondo-ui` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo-ui`. Note you'll still need [druid's platform specific dependencies](https://github.com/xi-editor/druid#platform-notes) on mac and linux.
