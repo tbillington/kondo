@@ -12,7 +12,7 @@ use druid::{
         ViewSwitcher, WidgetExt,
     },
     AppLauncher, Color, Command, Data, Env, Event, EventCtx, ExtEventSink, FileDialogOptions,
-    FileInfo, Lens, LocalizedString, Selector, Widget, WindowDesc,
+    FileInfo, Lens, LocalizedString, Selector, Target, Widget, WindowDesc,
 };
 
 use kondo_lib::{clean, pretty_size, scan};
@@ -144,7 +144,7 @@ impl<W: Widget<AppData>> Controller<AppData, W> for EventHandler {
             Event::Command(cmd) if cmd.is(OPEN_FILE) => {
                 let file_info = cmd.get::<FileInfo>(OPEN_FILE).unwrap().clone();
                 data.scan_dir = String::from(file_info.path().to_str().unwrap());
-                ctx.submit_command(Command::new(SCAN_START, ()), None);
+                ctx.submit_command(Command::new(SCAN_START, (), Target::Auto));
             }
             Event::Command(cmd) if cmd.is(SCAN_START) => {
                 data.active_item = None;
@@ -197,11 +197,11 @@ fn spawn_scanner_thread(
                             dirs: Arc::new(project_size.dirs),
                         };
                         event_sink
-                            .submit_command(ADD_ITEM, project, None)
+                            .submit_command(ADD_ITEM, project, Target::Auto)
                             .expect("error submitting ADD_ITEM command");
                     });
                     event_sink
-                        .submit_command(SCAN_COMPLETE, false, None)
+                        .submit_command(SCAN_COMPLETE, false, Target::Auto)
                         .expect("error submitting SCAN_COMPLETE command");
                 }
             }
@@ -262,13 +262,11 @@ fn make_ui() -> impl Widget<AppData> {
             }))
             .with_child(Button::new("Select Directory").on_click(
                 |ctx, _data: &mut AppData, _env| {
-                    ctx.submit_command(
-                        Command::new(
-                            SHOW_OPEN_PANEL,
-                            FileDialogOptions::new().select_directories(),
-                        ),
-                        None,
-                    );
+                    ctx.submit_command(Command::new(
+                        SHOW_OPEN_PANEL,
+                        FileDialogOptions::new().select_directories(),
+                        Target::Auto,
+                    ));
                 },
             ))
             .center(),
@@ -305,7 +303,7 @@ fn make_ui() -> impl Widget<AppData> {
                 )
             })
             .on_click(|_ctx, data, _env| {
-                _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, data.clone()), None)
+                _ctx.submit_command(Command::new(SET_ACTIVE_ITEM, data.clone(), Target::Auto))
             })
         })
         .lens(AppData::items)
@@ -382,7 +380,7 @@ fn make_ui() -> impl Widget<AppData> {
                 Button::new("Clean project of artifacts").on_click(
                     |ctx, data: &mut AppData, _env| {
                         if let Some(active_item) = data.active_item.clone() {
-                            ctx.submit_command(Command::new(CLEAN_PATH, active_item), None);
+                            ctx.submit_command(Command::new(CLEAN_PATH, active_item, Target::Auto));
                         }
                     },
                 ),
