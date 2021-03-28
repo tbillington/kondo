@@ -52,6 +52,7 @@ pub enum ProjectType {
     Node,
     Unity,
     Stack,
+    #[allow(clippy::upper_case_acronyms)]
     SBT,
     Maven,
     Unreal,
@@ -331,7 +332,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 
-pub fn path_canonicalise(base: &path::PathBuf, tail: path::PathBuf) -> path::PathBuf {
+pub fn path_canonicalise(base: &path::Path, tail: path::PathBuf) -> path::PathBuf {
     if tail.is_absolute() {
         tail
     } else {
