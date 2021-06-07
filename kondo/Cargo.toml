@@ -13,6 +13,7 @@ repository = "https://github.com/tbillington/kondo"
 readme = "../README.md"
 categories = ["command-line-utilities"]
 license = "MIT"
+keywords = ["clean", "cleanup", "delete", "free"]
 exclude = ["test_dir"]
 edition = "2018"
 
