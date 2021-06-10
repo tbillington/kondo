@@ -12,6 +12,7 @@ homepage = "https://github.com/tbillington/kondo"
 repository = "https://github.com/tbillington/kondo"
 edition = "2018"
 license = "MIT"
+keywords = ["clean", "cleanup", "delete", "free"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
