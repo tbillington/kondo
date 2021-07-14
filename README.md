@@ -10,7 +10,7 @@ Cleans unneeded directories and files from your system.
 
 It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects.
 
-Supports:
+## Supports:
 
 - [Cargo](https://doc.rust-lang.org/cargo/) projects
 - [Node](https://nodejs.org/) projects
