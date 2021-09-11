@@ -116,8 +116,6 @@ impl Project {
             Ok(rd) => rd,
         };
 
-        let artifact_dirs: Vec<&str> = self.artifact_dirs().iter().copied().collect();
-
         for entry in project_root.filter_map(|rd| rd.ok()) {
             let file_type = match entry.file_type() {
                 Err(_) => continue,
@@ -137,7 +135,7 @@ impl Project {
                     Ok(file_name) => file_name,
                 };
                 let size = dir_size(&entry.path());
-                let artifact_dir = artifact_dirs.contains(&file_name.as_str());
+                let artifact_dir = self.artifact_dirs().contains(&file_name.as_str());
                 if artifact_dir {
                     artifact_size += size;
                 } else {
