@@ -182,6 +182,12 @@ impl Project {
     }
 }
 
+impl ProjectType {
+    fn is_recursive(&self) -> bool {
+        matches!(self, ProjectType::Maven)
+    }
+}
+
 fn is_hidden(entry: &walkdir::DirEntry) -> bool {
     entry
         .file_name()
@@ -192,15 +198,14 @@ fn is_hidden(entry: &walkdir::DirEntry) -> bool {
 
 struct ProjectIter {
     it: walkdir::IntoIter,
+    found_projects: Vec<Project>,
 }
 
-impl Iterator for ProjectIter {
-    type Item = Project;
-
-    fn next(&mut self) -> Option<Self::Item> {
+impl ProjectIter {
+    fn walk(&mut self) {
         loop {
             let entry: walkdir::DirEntry = match self.it.next() {
-                None => return None,
+                None => return,
                 Some(Err(_)) => continue,
                 Some(Ok(entry)) => entry,
             };
@@ -215,6 +220,7 @@ impl Iterator for ProjectIter {
                 Err(_) => continue,
                 Ok(rd) => rd,
             };
+            let mut skip_dir = false;
             for dir_entry in rd.filter_map(|rd| rd.ok()) {
                 let file_name = match dir_entry.file_name().into_string() {
                     Err(_) => continue,
@@ -239,14 +245,33 @@ impl Iterator for ProjectIter {
                     _ => None,
                 };
                 if let Some(project_type) = p_type {
-                    self.it.skip_current_dir();
-                    return Some(Project {
+                    if !project_type.is_recursive() {
+                        skip_dir = true;
+                    }
+                    self.found_projects.push(Project {
                         project_type,
                         path: entry.path().to_path_buf(),
                     });
                 }
             }
+            if skip_dir {
+                self.it.skip_current_dir()
+            }
         }
+    }
+}
+
+impl Iterator for ProjectIter {
+    type Item = Project;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.found_projects.is_empty() {
+            self.walk();
+            if self.found_projects.is_empty() {
+                return None;
+            }
+        }
+        self.found_projects.pop()
     }
 }
 
@@ -255,6 +280,7 @@ pub fn scan<P: AsRef<path::Path>>(p: &P) -> impl Iterator<Item = Project> {
         it: walkdir::WalkDir::new(p)
             .follow_links(SYMLINK_FOLLOW)
             .into_iter(),
+        found_projects: Vec::new(),
     }
 }
 
