@@ -1,4 +1,7 @@
-use std::{error, fs, path};
+use std::{
+    error::{self, Error},
+    fs, path,
+};
 
 const SYMLINK_FOLLOW: bool = true;
 
@@ -329,13 +332,13 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
 
     Ok(())
 }
-
-pub fn path_canonicalise(base: &path::Path, tail: path::PathBuf) -> path::PathBuf {
+pub fn path_canonicalise(
+    base: &path::Path,
+    tail: path::PathBuf,
+) -> Result<path::PathBuf, Box<dyn Error>> {
     if tail.is_absolute() {
-        tail
+        Ok(tail)
     } else {
-        base.join(tail)
-            .canonicalize()
-            .expect("Unable to canonicalize!")
+        Ok(base.join(tail).canonicalize()?)
     }
 }
