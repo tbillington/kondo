@@ -1,3 +1,6 @@
+// On the Windows platform, disable the console when opening the app
+#![windows_subsystem = "windows"]
+
 use std::{
     cmp::Ordering,
     path,
