@@ -19,13 +19,13 @@ struct Opt {
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     let cd = current_dir()?;
-    Ok(if dirs.is_empty() {
-        vec![cd]
-    } else {
-        dirs.into_iter()
-            .map(|d| path_canonicalise(&cd, d))
-            .collect()
-    })
+    if dirs.is_empty() {
+        return Ok(vec![cd]);
+    }
+
+    dirs.into_iter()
+        .map(|d| path_canonicalise(&cd, d))
+        .collect()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
