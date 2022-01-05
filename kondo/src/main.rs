@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut clean_all = opt.all;
 
-    'project_loop: for project in dirs.iter().flat_map(scan) {
+    'project_loop: for project in dirs.iter().flat_map(scan).filter_map(|p| p.ok()) {
         write_buffer.clear();
 
         let project_artifact_bytes = project
