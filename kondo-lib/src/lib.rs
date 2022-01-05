@@ -197,14 +197,19 @@ struct ProjectIter {
     it: walkdir::IntoIter,
 }
 
+pub enum Red {
+    IOError(::std::io::Error),
+    WalkdirError(walkdir::Error),
+}
+
 impl Iterator for ProjectIter {
-    type Item = Project;
+    type Item = Result<Project, Red>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let entry: walkdir::DirEntry = match self.it.next() {
                 None => return None,
-                Some(Err(_)) => continue,
+                Some(Err(e)) => return Some(Err(Red::WalkdirError(e))),
                 Some(Ok(entry)) => entry,
             };
             if !entry.file_type().is_dir() {
@@ -215,15 +220,17 @@ impl Iterator for ProjectIter {
                 continue;
             }
             let rd = match entry.path().read_dir() {
-                Err(_) => continue,
+                Err(e) => return Some(Err(Red::IOError(e))),
                 Ok(rd) => rd,
             };
-            for dir_entry in rd.filter_map(|rd| rd.ok()) {
-                let file_name = match dir_entry.file_name().into_string() {
-                    Err(_) => continue,
-                    Ok(file_name) => file_name,
+            // intentionally ignoring errors while iterating the ReadDir
+            // can't return them because we'll lose the context of where we are
+            for dir_entry in rd.filter_map(|rd| rd.ok()).map(|de| de.file_name()) {
+                let file_name = match dir_entry.to_str() {
+                    None => continue,
+                    Some(file_name) => file_name,
                 };
-                let p_type = match file_name.as_str() {
+                let p_type = match file_name {
                     FILE_CARGO_TOML => Some(ProjectType::Cargo),
                     FILE_PACKAGE_JSON => Some(ProjectType::Node),
                     FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
@@ -243,17 +250,17 @@ impl Iterator for ProjectIter {
                 };
                 if let Some(project_type) = p_type {
                     self.it.skip_current_dir();
-                    return Some(Project {
+                    return Some(Ok(Project {
                         project_type,
                         path: entry.path().to_path_buf(),
-                    });
+                    }));
                 }
             }
         }
     }
 }
 
-pub fn scan<P: AsRef<path::Path>>(p: &P) -> impl Iterator<Item = Project> {
+pub fn scan<P: AsRef<path::Path>>(p: &P) -> impl Iterator<Item = Result<Project, Red>> {
     ProjectIter {
         it: walkdir::WalkDir::new(p)
             .follow_links(SYMLINK_FOLLOW)

@@ -184,7 +184,7 @@ fn spawn_scanner_thread(
         .spawn(move || loop {
             match scan_starter_recv.recv().expect("scan starter thread") {
                 ScanStarterThreadMsg::StartScan(p) => {
-                    scan(&p).for_each(|project| {
+                    scan(&p).filter_map(|p| p.ok()).for_each(|project| {
                         let name = project.name();
                         let project_size = project.size_dirs();
                         let display = path::Path::new(&name)
