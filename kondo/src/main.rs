@@ -11,10 +11,21 @@ use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
+/// Kondo recursively cleans project directories.
+///
+/// Supported project types: Cargo, Node, Unity, SBT, Haskell Stack, Maven, Unreal Engine, Jupyter Notebook, and Python projects.
 struct Opt {
     /// The directories to examine. Current directory will be used if DIRS is omitted.
     #[structopt(name = "DIRS", parse(from_os_str))]
     dirs: Vec<PathBuf>,
+
+    /// Quiet mode. Won't output to the terminal. -qq prevents all output.
+    #[structopt(short, long, parse(from_occurrences))]
+    quiet: u8,
+
+    /// Clean all found projects without confirmation.
+    #[structopt(short, long)]
+    all: bool,
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -31,6 +42,11 @@ fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error
 fn main() -> Result<(), Box<dyn Error>> {
     let opt = Opt::from_args();
 
+    if opt.quiet > 0 && !opt.all {
+        eprintln!("Quiet mode can only be used with --all.");
+        std::process::exit(1);
+    }
+
     let stdout = stdout();
     let mut write_handle = stdout.lock();
     let mut write_buffer = String::with_capacity(2048);
@@ -39,9 +55,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut read_handle = stdin.lock();
 
     let dirs = prepare_directories(opt.dirs)?;
+    let mut projects_cleaned = 0;
     let mut bytes_deleted = 0;
 
-    let mut clean_all = false;
+    let mut clean_all = opt.all;
 
     'project_loop: for project in dirs.iter().flat_map(scan) {
         write_buffer.clear();
@@ -68,13 +85,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
 
-        writeln!(
-            &mut write_handle,
-            "{} {} project{}",
-            &project.name(),
-            project.type_name(),
-            write_buffer
-        )?;
+        if opt.quiet == 0 {
+            writeln!(
+                &mut write_handle,
+                "{} {} project{}",
+                &project.name(),
+                project.type_name(),
+                write_buffer
+            )?;
+        }
 
         let clean_project = if clean_all {
             true
@@ -108,22 +127,30 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if clean_project {
             project.clean();
-            writeln!(
-                &mut write_handle,
-                "  deleted {}",
-                &pretty_size(project_artifact_bytes)
-            )?;
+            if opt.quiet == 0 {
+                writeln!(
+                    &mut write_handle,
+                    "  deleted {}",
+                    &pretty_size(project_artifact_bytes)
+                )?;
+            }
             bytes_deleted += project_artifact_bytes;
+            projects_cleaned += 1;
         }
 
-        writeln!(&mut write_handle)?;
+        if opt.quiet == 0 {
+            writeln!(&mut write_handle)?;
+        }
     }
 
-    writeln!(
-        &mut write_handle,
-        "Total bytes deleted: {}",
-        pretty_size(bytes_deleted)
-    )?;
+    if opt.quiet < 2 {
+        writeln!(
+            &mut write_handle,
+            "Projects cleaned: {}, Bytes deleted: {}",
+            projects_cleaned,
+            pretty_size(bytes_deleted)
+        )?;
+    }
 
     Ok(())
 }
