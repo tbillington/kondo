@@ -21,6 +21,7 @@ It will identify the disk space savings you would get from deleting temporary/un
 - [Unreal Engine](https://www.unrealengine.com/) projects
 - [Jupyter Notebook](https://jupyter.org/) projects
 - [Python](https://www.python.org/) projects
+- [CMake](https://cmake.org) projects
 
 ## Installation
 

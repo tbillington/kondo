@@ -11,6 +11,7 @@ const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
 const FILE_MVN_BUILD: &str = "pom.xml";
+const FILE_CMAKE_BUILD: &str = "CMakeLists.txt";
 const FILE_UNREAL_SUFFIX: &str = ".uproject";
 const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
 const FILE_PYTHON_SUFFIX: &str = ".py";
@@ -29,6 +30,7 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
+const PROJECT_CMAKE_DIRS: [&str; 1] = ["build"];
 const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "Binaries",
     "Build",
@@ -45,6 +47,7 @@ const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
+const PROJECT_CMAKE_NAME: &str = "CMake";
 const PROJECT_UNREAL_NAME: &str = "Unreal";
 const PROJECT_JUPYTER_NAME: &str = "Jupyter";
 const PROJECT_PYTHON_NAME: &str = "Python";
@@ -58,6 +61,7 @@ pub enum ProjectType {
     #[allow(clippy::upper_case_acronyms)]
     SBT,
     Maven,
+    CMake,
     Unreal,
     Jupyter,
     Python,
@@ -88,6 +92,7 @@ impl Project {
             ProjectType::Unreal => &PROJECT_UNREAL_DIRS,
             ProjectType::Jupyter => &PROJECT_JUPYTER_DIRS,
             ProjectType::Python => &PROJECT_PYTHON_DIRS,
+            ProjectType::CMake => &PROJECT_CMAKE_DIRS,
         }
     }
 
@@ -166,6 +171,7 @@ impl Project {
             ProjectType::Unreal => PROJECT_UNREAL_NAME,
             ProjectType::Jupyter => PROJECT_JUPYTER_NAME,
             ProjectType::Python => PROJECT_PYTHON_NAME,
+            ProjectType::CMake => PROJECT_CMAKE_NAME,
         }
     }
 
@@ -237,6 +243,7 @@ impl Iterator for ProjectIter {
                     FILE_STACK_HASKELL => Some(ProjectType::Stack),
                     FILE_SBT_BUILD => Some(ProjectType::SBT),
                     FILE_MVN_BUILD => Some(ProjectType::Maven),
+                    FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -312,6 +319,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_STACK_HASKELL => Some(ProjectType::Stack),
                 FILE_SBT_BUILD => Some(ProjectType::SBT),
                 FILE_MVN_BUILD => Some(ProjectType::Maven),
+                FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                 _ => None,
             };
             if let Some(project_type) = p_type {
