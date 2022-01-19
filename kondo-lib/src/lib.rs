@@ -15,6 +15,7 @@ const FILE_CMAKE_BUILD: &str = "CMakeLists.txt";
 const FILE_UNREAL_SUFFIX: &str = ".uproject";
 const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
 const FILE_PYTHON_SUFFIX: &str = ".py";
+const FILE_COMPOSER_JSON: &str = "composer.json";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -40,6 +41,7 @@ const PROJECT_UNREAL_DIRS: [&str; 5] = [
 ];
 const PROJECT_JUPYTER_DIRS: [&str; 1] = [".ipynb_checkpoints"];
 const PROJECT_PYTHON_DIRS: [&str; 3] = ["__pycache__", "__pypackages__", ".venv"];
+const PROJECT_COMPOSER_DIRS: [&str; 1] = ["vendor"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -51,6 +53,7 @@ const PROJECT_CMAKE_NAME: &str = "CMake";
 const PROJECT_UNREAL_NAME: &str = "Unreal";
 const PROJECT_JUPYTER_NAME: &str = "Jupyter";
 const PROJECT_PYTHON_NAME: &str = "Python";
+const PROJECT_COMPOSER_NAME: &str = "Composer";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -65,6 +68,7 @@ pub enum ProjectType {
     Unreal,
     Jupyter,
     Python,
+    Composer,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +97,7 @@ impl Project {
             ProjectType::Jupyter => &PROJECT_JUPYTER_DIRS,
             ProjectType::Python => &PROJECT_PYTHON_DIRS,
             ProjectType::CMake => &PROJECT_CMAKE_DIRS,
+            ProjectType::Composer => &PROJECT_COMPOSER_DIRS,
         }
     }
 
@@ -172,6 +177,7 @@ impl Project {
             ProjectType::Jupyter => PROJECT_JUPYTER_NAME,
             ProjectType::Python => PROJECT_PYTHON_NAME,
             ProjectType::CMake => PROJECT_CMAKE_NAME,
+            ProjectType::Composer => PROJECT_COMPOSER_NAME,
         }
     }
 
@@ -244,6 +250,7 @@ impl Iterator for ProjectIter {
                     FILE_SBT_BUILD => Some(ProjectType::SBT),
                     FILE_MVN_BUILD => Some(ProjectType::Maven),
                     FILE_CMAKE_BUILD => Some(ProjectType::CMake),
+                    FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -320,6 +327,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_SBT_BUILD => Some(ProjectType::SBT),
                 FILE_MVN_BUILD => Some(ProjectType::Maven),
                 FILE_CMAKE_BUILD => Some(ProjectType::CMake),
+                FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                 _ => None,
             };
             if let Some(project_type) = p_type {
