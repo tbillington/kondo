@@ -12,16 +12,17 @@ It will identify the disk space savings you would get from deleting temporary/un
 
 ## Supports:
 
-- [Cargo](https://doc.rust-lang.org/cargo/) projects
-- [Node](https://nodejs.org/) projects
-- [Unity](https://unity.com/) Projects
-- [SBT](https://www.scala-sbt.org/) projects
-- [Haskell Stack](https://docs.haskellstack.org/) projects
-- [Maven](https://maven.apache.org/) projects
-- [Unreal Engine](https://www.unrealengine.com/) projects
-- [Jupyter Notebook](https://jupyter.org/) projects
+- [Cargo](https://doc.rust-lang.org/cargo/) projects (Rust)
+- [Node](https://nodejs.org/) projects (JavaScript)
+- [Unity](https://unity.com/) projects (C#)
+- [SBT](https://www.scala-sbt.org/) projects (Scala)
+- [Haskell Stack](https://docs.haskellstack.org/) projects (Haskell)
+- [Maven](https://maven.apache.org/) projects (Java)
+- [Unreal Engine](https://www.unrealengine.com/) projects (C++)
+- [Jupyter Notebook](https://jupyter.org/) projects (Python)
 - [Python](https://www.python.org/) projects
 - [CMake](https://cmake.org) projects
+- [Composer](https://getcomposer.org/) projects (PHP)
 
 ## Installation
 
