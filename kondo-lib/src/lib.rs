@@ -16,6 +16,7 @@ const FILE_UNREAL_SUFFIX: &str = ".uproject";
 const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
 const FILE_PYTHON_SUFFIX: &str = ".py";
 const FILE_COMPOSER_JSON: &str = "composer.json";
+const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -42,6 +43,12 @@ const PROJECT_UNREAL_DIRS: [&str; 5] = [
 const PROJECT_JUPYTER_DIRS: [&str; 1] = [".ipynb_checkpoints"];
 const PROJECT_PYTHON_DIRS: [&str; 3] = ["__pycache__", "__pypackages__", ".venv"];
 const PROJECT_COMPOSER_DIRS: [&str; 1] = ["vendor"];
+const PROJECT_PUB_DIRS: [&str; 4] = [
+    "build",
+    ".dart_tool",
+    "linux/flutter/ephemeral",
+    "windows/flutter/ephemeral",
+];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -54,6 +61,7 @@ const PROJECT_UNREAL_NAME: &str = "Unreal";
 const PROJECT_JUPYTER_NAME: &str = "Jupyter";
 const PROJECT_PYTHON_NAME: &str = "Python";
 const PROJECT_COMPOSER_NAME: &str = "Composer";
+const PROJECT_PUB_NAME: &str = "Pub";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -69,6 +77,7 @@ pub enum ProjectType {
     Jupyter,
     Python,
     Composer,
+    Pub,
 }
 
 #[derive(Debug, Clone)]
@@ -98,6 +107,7 @@ impl Project {
             ProjectType::Python => &PROJECT_PYTHON_DIRS,
             ProjectType::CMake => &PROJECT_CMAKE_DIRS,
             ProjectType::Composer => &PROJECT_COMPOSER_DIRS,
+            ProjectType::Pub => &PROJECT_PUB_DIRS,
         }
     }
 
@@ -178,6 +188,7 @@ impl Project {
             ProjectType::Python => PROJECT_PYTHON_NAME,
             ProjectType::CMake => PROJECT_CMAKE_NAME,
             ProjectType::Composer => PROJECT_COMPOSER_NAME,
+            ProjectType::Pub => PROJECT_PUB_NAME,
         }
     }
 
@@ -251,6 +262,7 @@ impl Iterator for ProjectIter {
                     FILE_MVN_BUILD => Some(ProjectType::Maven),
                     FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                     FILE_COMPOSER_JSON => Some(ProjectType::Composer),
+                    FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -328,6 +340,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_MVN_BUILD => Some(ProjectType::Maven),
                 FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                 FILE_COMPOSER_JSON => Some(ProjectType::Composer),
+                FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
                 _ => None,
             };
             if let Some(project_type) = p_type {
