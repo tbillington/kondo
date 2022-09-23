@@ -23,6 +23,7 @@ It will identify the disk space savings you would get from deleting temporary/un
 - [Python](https://www.python.org/) projects
 - [CMake](https://cmake.org) projects
 - [Composer](https://getcomposer.org/) projects (PHP)
+- [Pub](https://dart.dev/) projects (Dart)
 
 ## Installation
 
