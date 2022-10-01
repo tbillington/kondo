@@ -233,7 +233,7 @@ pub fn print_elapsed(secs: u64) -> String {
 
     let unit = unit.round();
 
-    let plural = if unit > 1.0 { "s" } else { "" };
+    let plural = if unit == 1.0 { "" } else { "s" };
 
     format!("{unit:.0} {fstring}{plural} ago")
 }
