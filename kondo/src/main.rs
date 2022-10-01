@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use kondo_lib::{dir_size, path_canonicalise, pretty_size, scan};
+use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
@@ -26,6 +26,14 @@ struct Opt {
     /// Clean all found projects without confirmation.
     #[structopt(short, long)]
     all: bool,
+
+    /// Follow symbolic links
+    #[structopt(short = "L", long)]
+    follow_symlinks: bool,
+
+    /// Restrict directory traversal to the root filesystem
+    #[structopt(short, long)]
+    same_filesystem: bool,
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -60,17 +68,28 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut clean_all = opt.all;
 
-    'project_loop: for project in dirs.iter().flat_map(scan).filter_map(|p| p.ok()) {
+    let scan_options: ScanOptions = ScanOptions {
+        follow_symlinks: opt.follow_symlinks,
+        same_file_system: opt.same_filesystem,
+    };
+
+    'project_loop: for project in dirs
+        .iter()
+        .flat_map(|dir| scan(dir, &scan_options))
+        .filter_map(|p| p.ok())
+    {
         write_buffer.clear();
 
         let project_artifact_bytes = project
             .artifact_dirs()
             .iter()
             .copied()
-            .filter_map(|dir| match dir_size(&project.path.join(dir)) {
-                0 => None,
-                size => Some((dir, size)),
-            })
+            .filter_map(
+                |dir| match dir_size(&project.path.join(dir), &scan_options) {
+                    0 => None,
+                    size => Some((dir, size)),
+                },
+            )
             .map(|(dir, size)| {
                 write_buffer.push_str("\n  └─ ");
                 write_buffer.push_str(dir);
@@ -86,9 +105,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if opt.quiet == 0 {
+            let mut last_modified_str = String::new();
+
+            if let Ok(last_modified) = project.last_modified(&scan_options) {
+                if let Ok(elapsed) = last_modified.elapsed() {
+                    let elapsed = print_elapsed(elapsed.as_secs());
+                    last_modified_str = format!("({elapsed})");
+                }
+            }
+
             writeln!(
                 &mut write_handle,
-                "{} {} project{}",
+                "{} {} project {last_modified_str}{}",
                 &project.name(),
                 project.type_name(),
                 write_buffer

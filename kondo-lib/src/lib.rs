@@ -1,9 +1,8 @@
 use std::{
     error::{self, Error},
     fs, path,
+    time::SystemTime,
 };
-
-const SYMLINK_FOLLOW: bool = true;
 
 const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
@@ -115,15 +114,36 @@ impl Project {
         self.path.to_str().unwrap().to_string()
     }
 
-    pub fn size(&self) -> u64 {
+    pub fn size(&self, options: &ScanOptions) -> u64 {
         self.artifact_dirs()
             .iter()
             .copied()
-            .map(|p| dir_size(&self.path.join(p)))
+            .map(|p| dir_size(&self.path.join(p), options))
             .sum()
     }
 
-    pub fn size_dirs(&self) -> ProjectSize {
+    pub fn last_modified(&self, options: &ScanOptions) -> Result<SystemTime, std::io::Error> {
+        let top_level_modified = fs::metadata(&self.path)?.modified()?;
+        let most_recent_modified = ignore::WalkBuilder::new(&self.path)
+            .follow_links(options.follow_symlinks)
+            .same_file_system(options.same_file_system)
+            .build()
+            .fold(top_level_modified, |acc, e| {
+                if let Ok(e) = e {
+                    if let Ok(e) = e.metadata() {
+                        if let Ok(modified) = e.modified() {
+                            if modified > acc {
+                                return modified;
+                            }
+                        }
+                    }
+                }
+                acc
+            });
+        Ok(most_recent_modified)
+    }
+
+    pub fn size_dirs(&self, options: &ScanOptions) -> ProjectSize {
         let mut artifact_size = 0;
         let mut non_artifact_size = 0;
         let mut dirs = Vec::new();
@@ -157,7 +177,7 @@ impl Project {
                     Err(_) => continue,
                     Ok(file_name) => file_name,
                 };
-                let size = dir_size(&entry.path());
+                let size = dir_size(&entry.path(), options);
                 let artifact_dir = self.artifact_dirs().contains(&file_name.as_str());
                 if artifact_dir {
                     artifact_size += size;
@@ -206,6 +226,31 @@ impl Project {
             }
         }
     }
+}
+
+pub fn print_elapsed(secs: u64) -> String {
+    const MINUTE: u64 = 60;
+    const HOUR: u64 = MINUTE * 60;
+    const DAY: u64 = HOUR * 24;
+    const WEEK: u64 = DAY * 7;
+    const MONTH: u64 = WEEK * 4;
+    const YEAR: u64 = MONTH * 12;
+
+    let (unit, fstring) = match secs {
+        secs if secs < MINUTE => (secs as f64, "second"),
+        secs if secs < HOUR * 2 => (secs as f64 / MINUTE as f64, "minute"),
+        secs if secs < DAY * 2 => (secs as f64 / HOUR as f64, "hour"),
+        secs if secs < WEEK * 2 => (secs as f64 / DAY as f64, "day"),
+        secs if secs < MONTH * 2 => (secs as f64 / WEEK as f64, "week"),
+        secs if secs < YEAR * 2 => (secs as f64 / MONTH as f64, "month"),
+        secs => (secs as f64 / MONTH as f64, "year"),
+    };
+
+    let unit = unit.round();
+
+    let plural = if unit == 1.0 { "" } else { "s" };
+
+    format!("{unit:.0} {fstring}{plural} ago")
 }
 
 fn is_hidden(entry: &walkdir::DirEntry) -> bool {
@@ -286,18 +331,32 @@ impl Iterator for ProjectIter {
     }
 }
 
-pub fn scan<P: AsRef<path::Path>>(p: &P) -> impl Iterator<Item = Result<Project, Red>> {
+#[derive(Debug)]
+pub struct ScanOptions {
+    pub follow_symlinks: bool,
+    pub same_file_system: bool,
+}
+
+fn build_walkdir_iter<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> ProjectIter {
     ProjectIter {
-        it: walkdir::WalkDir::new(p)
-            .follow_links(SYMLINK_FOLLOW)
+        it: walkdir::WalkDir::new(path)
+            .follow_links(options.follow_symlinks)
+            .same_file_system(options.same_file_system)
             .into_iter(),
     }
 }
 
-pub fn dir_size(path: &path::Path) -> u64 {
-    walkdir::WalkDir::new(path)
-        .follow_links(SYMLINK_FOLLOW)
-        .into_iter()
+pub fn scan<P: AsRef<path::Path>>(
+    path: &P,
+    options: &ScanOptions,
+) -> impl Iterator<Item = Result<Project, Red>> {
+    build_walkdir_iter(path, options)
+}
+
+// TODO does this need to exist as is??
+pub fn dir_size<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> u64 {
+    build_walkdir_iter(path, options)
+        .it
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter_map(|e| e.metadata().ok())
