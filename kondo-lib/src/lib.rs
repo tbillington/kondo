@@ -122,10 +122,25 @@ impl Project {
             .sum()
     }
 
-    pub fn last_modified(&self) -> Result<SystemTime, std::io::Error> {
-        // TODO this doesn't seem to always be up to date with it's children
-        // might have to be recursive over the entire sub-tree
-        fs::metadata(&self.path)?.modified()
+    pub fn last_modified(&self, options: &ScanOptions) -> Result<SystemTime, std::io::Error> {
+        let top_level_modified = fs::metadata(&self.path)?.modified()?;
+        let most_recent_modified = ignore::WalkBuilder::new(&self.path)
+            .follow_links(options.follow_symlinks)
+            .same_file_system(options.same_file_system)
+            .build()
+            .fold(top_level_modified, |acc, e| {
+                if let Ok(e) = e {
+                    if let Ok(e) = e.metadata() {
+                        if let Ok(modified) = e.modified() {
+                            if modified > acc {
+                                return modified;
+                            }
+                        }
+                    }
+                }
+                acc
+            });
+        Ok(most_recent_modified)
     }
 
     pub fn size_dirs(&self, options: &ScanOptions) -> ProjectSize {

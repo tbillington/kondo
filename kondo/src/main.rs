@@ -107,7 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         if opt.quiet == 0 {
             let mut last_modified_str = String::new();
 
-            if let Ok(last_modified) = project.last_modified() {
+            if let Ok(last_modified) = project.last_modified(&scan_options) {
                 if let Ok(elapsed) = last_modified.elapsed() {
                     let elapsed = print_elapsed(elapsed.as_secs());
                     last_modified_str = format!("({elapsed})");
