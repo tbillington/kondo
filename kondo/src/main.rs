@@ -42,9 +42,30 @@ fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error
         return Ok(vec![cd]);
     }
 
-    dirs.into_iter()
-        .map(|d| path_canonicalise(&cd, d))
-        .collect()
+    let dirs = dirs
+        .into_iter()
+        .filter_map(|path| {
+            let exists = path.try_exists().unwrap_or(false);
+            if !exists {
+                eprintln!("error: directory {} does not exist", path.to_string_lossy());
+                return None;
+            }
+
+            if let Ok(metadata) = path.metadata() {
+                if metadata.is_file() {
+                    eprintln!(
+                        "error: file supplied but directory expected: {}",
+                        path.to_string_lossy()
+                    );
+                    return None;
+                }
+            }
+
+            path_canonicalise(&cd, path).ok()
+        })
+        .collect();
+
+    Ok(dirs)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
