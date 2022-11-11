@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions};
+use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions, parse_old};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
@@ -34,6 +34,11 @@ struct Opt {
     /// Restrict directory traversal to the root filesystem
     #[structopt(short, long)]
     same_filesystem: bool,
+
+    /// Only directories with a file last modified n units of time ago will be looked at. Ex: 20d.
+    /// Unit are m: minutes, h: hours, d: days, w: weeks, M: months and y: years. If no unit is used defaults to days as the unit.
+    #[structopt(short, long, parse(try_from_str = parse_old), default_value = "0")]
+    older: u64,
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -125,16 +130,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
 
-        if opt.quiet == 0 {
-            let mut last_modified_str = String::new();
+        let mut last_modified_str = String::new();
+        let mut last_modified_int: u64 = 0;
 
-            if let Ok(last_modified) = project.last_modified(&scan_options) {
-                if let Ok(elapsed) = last_modified.elapsed() {
-                    let elapsed = print_elapsed(elapsed.as_secs());
-                    last_modified_str = format!("({elapsed})");
-                }
+        if let Ok(last_modified) = project.last_modified(&scan_options) {
+            if let Ok(elapsed) = last_modified.elapsed() {
+                last_modified_int = elapsed.as_secs();
+                let elapsed = print_elapsed(last_modified_int);
+                last_modified_str = format!("({elapsed})");
             }
+        }
 
+        if last_modified_int < opt.older {
+            continue;
+        }
+
+        if opt.quiet == 0 {
             writeln!(
                 &mut write_handle,
                 "{} {} project {last_modified_str}{}",
