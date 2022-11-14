@@ -2,9 +2,7 @@ use std::{
     error::{self, Error},
     fs, path,
     time::SystemTime,
-    num::ParseIntError,
 };
-
 
 const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
@@ -230,35 +228,13 @@ impl Project {
     }
 }
 
-const MINUTE: u64 = 60;
-const HOUR: u64 = MINUTE * 60;
-const DAY: u64 = HOUR * 24;
-const WEEK: u64 = DAY * 7;
-const MONTH: u64 = WEEK * 4;
-const YEAR: u64 = MONTH * 12;
-
-
-pub fn parse_old(s: &str) -> Result<u64, ParseIntError> {
-
-    fn calculate(s: &str, mult: u64) -> Result<u64, ParseIntError> {
-        Ok(s[ .. s.len() - 1].parse::<u64>()? * mult)
-    }
-
-    let c: char = s.chars().last().unwrap();
-
-    match c {
-        'm' => calculate(s, MINUTE),
-        'h' => calculate(s, HOUR),
-        'd' => calculate(s, DAY),
-        'w' => calculate(s, WEEK),
-        'M' => calculate(s, MONTH),
-        'y' => calculate(s, YEAR),
-        _ => Ok( s.parse::<u64>()? * DAY ),
-    }
-}
-
-
 pub fn print_elapsed(secs: u64) -> String {
+    const MINUTE: u64 = 60;
+    const HOUR: u64 = MINUTE * 60;
+    const DAY: u64 = HOUR * 24;
+    const WEEK: u64 = DAY * 7;
+    const MONTH: u64 = WEEK * 4;
+    const YEAR: u64 = MONTH * 12;
 
     let (unit, fstring) = match secs {
         secs if secs < MINUTE => (secs as f64, "second"),
