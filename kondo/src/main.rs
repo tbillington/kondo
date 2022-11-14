@@ -3,10 +3,10 @@ use structopt::StructOpt;
 use std::{
     env::current_dir,
     error::Error,
-    io::{stdin, stdout, BufRead, Write},
-    path::PathBuf,
     fmt,
-    num::ParseIntError
+    io::{stdin, stdout, BufRead, Write},
+    num::ParseIntError,
+    path::PathBuf,
 };
 
 use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions};
