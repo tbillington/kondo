@@ -5,9 +5,11 @@ use std::{
     error::Error,
     io::{stdin, stdout, BufRead, Write},
     path::PathBuf,
+    fmt,
+    num::ParseIntError
 };
 
-use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions, parse_old};
+use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
@@ -35,9 +37,8 @@ struct Opt {
     #[structopt(short, long)]
     same_filesystem: bool,
 
-    /// Only directories with a file last modified n units of time ago will be looked at. Ex: 20d.
-    /// Unit are m: minutes, h: hours, d: days, w: weeks, M: months and y: years. If no unit is used defaults to days as the unit.
-    #[structopt(short, long, parse(try_from_str = parse_old), default_value = "0")]
+    /// Only directories with a file last modified n units of time ago will be looked at. Ex: 20d. Units are m: minutes, h: hours, d: days, w: weeks, M: months and y: years.
+    #[structopt(short, long, parse(try_from_str = parse_age_filter), default_value = "0d")]
     older: u64,
 }
 
@@ -71,6 +72,57 @@ fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error
         .collect();
 
     Ok(dirs)
+}
+
+#[derive(Debug)]
+pub enum ParseAgeFilterError {
+    ParseIntError(ParseIntError),
+    InvalidUnit,
+}
+
+impl fmt::Display for ParseAgeFilterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseAgeFilterError::ParseIntError(e) => e.fmt(f),
+            ParseAgeFilterError::InvalidUnit => {
+                "invalid age unit, must be one of m, h, d, w, M, y".fmt(f)
+            }
+        }
+    }
+}
+
+impl From<ParseIntError> for ParseAgeFilterError {
+    fn from(e: ParseIntError) -> Self {
+        Self::ParseIntError(e)
+    }
+}
+
+pub fn parse_age_filter(age_filter: &str) -> Result<u64, ParseAgeFilterError> {
+    const MINUTE: u64 = 60;
+    const HOUR: u64 = MINUTE * 60;
+    const DAY: u64 = HOUR * 24;
+    const WEEK: u64 = DAY * 7;
+    const MONTH: u64 = WEEK * 4;
+    const YEAR: u64 = MONTH * 12;
+
+    let (digit_end, unit) = age_filter
+        .char_indices()
+        .last()
+        .ok_or(ParseAgeFilterError::InvalidUnit)?;
+
+    let multiplier = match unit {
+        'm' => MINUTE,
+        'h' => HOUR,
+        'd' => DAY,
+        'w' => WEEK,
+        'M' => MONTH,
+        'y' => YEAR,
+        _ => return Err(ParseAgeFilterError::InvalidUnit),
+    };
+
+    let count = age_filter[..digit_end].parse::<u64>()?;
+    let seconds = count * multiplier;
+    Ok(seconds)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
