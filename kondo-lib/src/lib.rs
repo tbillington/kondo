@@ -16,6 +16,7 @@ const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
 const FILE_PYTHON_SUFFIX: &str = ".py";
 const FILE_COMPOSER_JSON: &str = "composer.json";
 const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
+const FILE_ELIXIR_MIX: &str = "mix.exs";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
@@ -48,6 +49,7 @@ const PROJECT_PUB_DIRS: [&str; 4] = [
     "linux/flutter/ephemeral",
     "windows/flutter/ephemeral",
 ];
+const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -61,6 +63,7 @@ const PROJECT_JUPYTER_NAME: &str = "Jupyter";
 const PROJECT_PYTHON_NAME: &str = "Python";
 const PROJECT_COMPOSER_NAME: &str = "Composer";
 const PROJECT_PUB_NAME: &str = "Pub";
+const PROJECT_ELIXIR_NAME: &str = "Elixir";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -77,6 +80,7 @@ pub enum ProjectType {
     Python,
     Composer,
     Pub,
+    Elixir,
 }
 
 #[derive(Debug, Clone)]
@@ -107,6 +111,7 @@ impl Project {
             ProjectType::CMake => &PROJECT_CMAKE_DIRS,
             ProjectType::Composer => &PROJECT_COMPOSER_DIRS,
             ProjectType::Pub => &PROJECT_PUB_DIRS,
+            ProjectType::Elixir => &PROJECT_ELIXIR_DIRS,
         }
     }
 
@@ -209,6 +214,7 @@ impl Project {
             ProjectType::CMake => PROJECT_CMAKE_NAME,
             ProjectType::Composer => PROJECT_COMPOSER_NAME,
             ProjectType::Pub => PROJECT_PUB_NAME,
+            ProjectType::Elixir => PROJECT_ELIXIR_NAME,
         }
     }
 
@@ -308,6 +314,7 @@ impl Iterator for ProjectIter {
                     FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                     FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                     FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
+                    FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -400,6 +407,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                 FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                 FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
+                FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                 _ => None,
             };
             if let Some(project_type) = p_type {
