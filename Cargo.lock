@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "kondo"
-version = "0.4.0"
+version = "0.6.0"
 dependencies = [
  "kondo-lib",
  "structopt",
@@ -141,7 +141,7 @@ dependencies = [
 
 [[package]]
 name = "kondo-lib"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ignore",
  "walkdir",
