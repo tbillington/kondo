@@ -1,3 +1,31 @@
+# 0.6 2022-12-25
+
+- add support for cmake projects by @sassman in https://github.com/tbillington/kondo/pull/56
+- add support for composer php projects by @WesleyKlop in https://github.com/tbillington/kondo/pull/58
+- add support for Pub (Dart) projects by @Desdaemon in https://github.com/tbillington/kondo/pull/62
+- default to not following symlinks, thank you @cuviper for raising in https://github.com/tbillington/kondo/issues/61, by @tbillington in https://github.com/tbillington/kondo/pull/63
+- show last modified date on project in https://github.com/tbillington/kondo/pull/63
+- invalid directories are now filtered out when supplied to the cli in https://github.com/tbillington/kondo/commit/725f7ec72ff95a32b9f09ce834ab917c892915aa
+- allow passing time filter to only show projects not mofidied in some time range by @gabrielztk in https://github.com/tbillington/kondo/pull/66
+- add support for Elixir projects by @aschiavon91 in https://github.com/tbillington/kondo/pull/69
+
+# 0.5 2022-01-05
+
+### Major
+
+Support for pycache and jupyter-notebook checkpoints by @Stunkymonkey in https://github.com/tbillington/kondo/pull/33
+
+Support for "quiet" and "all" modes allowing you to clean all projects found and doing it without any noise! Implemented in https://github.com/tbillington/kondo/pull/53 and thanks to @danieljb for the suggestion.
+
+### Changes
+
+* update various dependencies by @striezel in https://github.com/tbillington/kondo/pull/40
+* add keywords for kondo and kondo-ui by @striezel in https://github.com/tbillington/kondo/pull/41
+* Add directories to delete for Python by @pawamoy in https://github.com/tbillington/kondo/pull/47
+* Disable the console on the Windows platform by @Aursen in https://github.com/tbillington/kondo/pull/49
+* kondo-lib: don't panic in `path_canonicalise` by @vrmiguel in https://github.com/tbillington/kondo/pull/50
+* add basic error handling to scan by @tbillington in https://github.com/tbillington/kondo/pull/54
+
 # 0.4 2020-07-31
 
 - Remove all options and subcommands to re-focus the intent of Kondo 🧹
