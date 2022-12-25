@@ -338,7 +338,7 @@ impl Iterator for ProjectIter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ScanOptions {
     pub follow_symlinks: bool,
     pub same_file_system: bool,
