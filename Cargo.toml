@@ -8,6 +8,5 @@ exclude = [
 ]
 
 [profile.release]
-incremental = false
 lto = true
 codegen-units = 1
