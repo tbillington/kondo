@@ -86,6 +86,7 @@ jobs:
         target:
           # macOS
           - x86_64-apple-darwin
+          - aarch64-apple-darwin
           # iOS
           # - aarch64-apple-ios
           # - armv7-apple-ios
