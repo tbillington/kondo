@@ -48,8 +48,6 @@ Windows, Mac, and Linux builds are available on the [Releases](https://github.co
 
 You can install `kondo` via [homebrew](https://formulae.brew.sh/formula/kondo) with `brew install kondo`.
 
-You can install `kondo` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo`.
-
 ## Operation
 
 ### Graphic User Interface
