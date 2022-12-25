@@ -24,6 +24,7 @@ It will identify the disk space savings you would get from deleting temporary/un
 - [CMake](https://cmake.org) projects
 - [Composer](https://getcomposer.org/) projects (PHP)
 - [Pub](https://dart.dev/) projects (Dart)
+- [Elixir](https://elixir-lang.org/) projects
 
 ## Installation
 
