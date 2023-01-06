@@ -19,7 +19,7 @@ const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 const FILE_ELIXIR_MIX: &str = "mix.exs";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
-const PROJECT_NODE_DIRS: [&str; 1] = ["node_modules"];
+const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
 const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Library",
     "Temp",
