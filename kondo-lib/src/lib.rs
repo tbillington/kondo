@@ -17,6 +17,7 @@ const FILE_PYTHON_SUFFIX: &str = ".py";
 const FILE_COMPOSER_JSON: &str = "composer.json";
 const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 const FILE_ELIXIR_MIX: &str = "mix.exs";
+const FILE_SWIFT_PACKAGE: &str = "Package.swift";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
@@ -50,6 +51,7 @@ const PROJECT_PUB_DIRS: [&str; 4] = [
     "windows/flutter/ephemeral",
 ];
 const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
+const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -64,6 +66,7 @@ const PROJECT_PYTHON_NAME: &str = "Python";
 const PROJECT_COMPOSER_NAME: &str = "Composer";
 const PROJECT_PUB_NAME: &str = "Pub";
 const PROJECT_ELIXIR_NAME: &str = "Elixir";
+const PROJECT_SWIFT_NAME: &str = "Swift";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -81,6 +84,7 @@ pub enum ProjectType {
     Composer,
     Pub,
     Elixir,
+    Swift,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +116,7 @@ impl Project {
             ProjectType::Composer => &PROJECT_COMPOSER_DIRS,
             ProjectType::Pub => &PROJECT_PUB_DIRS,
             ProjectType::Elixir => &PROJECT_ELIXIR_DIRS,
+            ProjectType::Swift => &PROJECT_SWIFT_DIRS,
         }
     }
 
@@ -215,6 +220,7 @@ impl Project {
             ProjectType::Composer => PROJECT_COMPOSER_NAME,
             ProjectType::Pub => PROJECT_PUB_NAME,
             ProjectType::Elixir => PROJECT_ELIXIR_NAME,
+            ProjectType::Swift => PROJECT_SWIFT_NAME,
         }
     }
 
@@ -315,6 +321,7 @@ impl Iterator for ProjectIter {
                     FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                     FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
                     FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
+                    FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -408,6 +415,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                 FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
                 FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
+                FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                 _ => None,
             };
             if let Some(project_type) = p_type {
