@@ -25,6 +25,7 @@ It will identify the disk space savings you would get from deleting temporary/un
 - [Composer](https://getcomposer.org/) projects (PHP)
 - [Pub](https://dart.dev/) projects (Dart)
 - [Elixir](https://elixir-lang.org/) projects
+- [Swift](https://swift.org/) projects
 
 ## Installation
 
