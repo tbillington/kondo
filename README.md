@@ -34,6 +34,9 @@ Excellent if
 <p align="center">
 Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!
 </p>
+<p align="center">
+Current <a href="https://github.com/tbillington/kondo/blob/a7af95484d364bbb12eb3b40b0d860424dd1b714/kondo-lib/src/lib.rs#L22-L54">deleted directories config</a>.
+</p>
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
 
@@ -54,6 +57,10 @@ Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pu
 </details>
 
 ## Installation
+
+> **Warning**
+>
+> Kondo is [_essentially_](https://github.com/tbillington/kondo/blob/a7af95484d364bbb12eb3b40b0d860424dd1b714/kondo-lib/src/lib.rs#L236) `rm -rf` with a prompt. Use at your own discretion. Always have a backup of your projects.
 
 ### Command Line
 
