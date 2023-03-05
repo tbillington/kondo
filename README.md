@@ -2,6 +2,23 @@
 
 Cleans unneeded directories and files from your system.
 
+<p align="center">
+<a href="https://doc.rust-lang.org/cargo/">Cargo</a>
+- <a href="https://nodejs.org/">Node</a>
+- <a href="https://unity.com/">Unity</a>
+- <a href="https://www.scala-sbt.org/">SBT</a>
+- <a href="https://docs.haskellstack.org/">Haskell Stack</a>
+- <a href="https://maven.apache.org/">Maven</a>
+- <a href="https://www.unrealengine.com/">Unreal Engine</a>
+- <a href="https://jupyter.org/">Jupyter Notebook</a>
+- <a href="https://www.python.org/">Python</a>
+- <a href="https://cmake.org">CMake</a>
+- <a href="https://getcomposer.org/">Composer</a>
+- <a href="https://dart.dev/">Pub</a>
+- <a href="https://elixir-lang.org/">Elixir</a>
+- <a href="https://swift.org/">Swift</a>
+</p>
+
 **Command line interface**
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
