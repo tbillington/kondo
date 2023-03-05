@@ -1,20 +1,28 @@
 # Kondo 🧹
 
-![Kondo Lints](https://github.com/tbillington/kondo/workflows/Kondo%20Lints/badge.svg)
-
 Cleans unneeded directories and files from your system.
 
-[kondo-cli-preview-clean.webm](https://user-images.githubusercontent.com/2771466/222949617-0ed621bc-ac4e-495a-9165-036a3a597d34.webm)
+**Command line interface**
 
+<img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
 
-![kondo gui](https://user-images.githubusercontent.com/2771466/76697113-f52b7a80-66e6-11ea-8ea1-4e1b6eb3f798.png)
+**Graphic user interface**
 
-![kondo command line](https://user-images.githubusercontent.com/2771466/89015432-5c765e00-d35a-11ea-8e67-193f2688d660.png)
+<img width="1112" alt="kondo gui displaying projects" src="https://user-images.githubusercontent.com/2771466/222950846-964162a1-80c9-4cdf-a9a8-d818ba4cb34a.png">
 
-It will identify the disk space savings you would get from deleting temporary/unnecessary files from project directories, such as `target` from Cargo projects and `node_modules` from Node projects.
+<details>
+<summary>CLI Video</summary>
 
+[kondo-cli.webm](https://user-images.githubusercontent.com/2771466/222949617-0ed621bc-ac4e-495a-9165-036a3a597d34.webm)
 
+</details>
 
+<details>
+<summary>UI Video</summary>
+
+[kondo-ui.webm](https://user-images.githubusercontent.com/2771466/222951044-13484711-6107-45d4-aaa3-3140bbbba898.webm)
+
+</details>
 
 ## Supports:
 
