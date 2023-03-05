@@ -3,6 +3,7 @@
 Cleans `node_modules`, `target`, `build`, etc from your projects.
 
 Excellent if
+
 - 💾 You want to back up your code but don't want to include GBs of dependencies
 - 🧑‍🎨 You try out lots of projects but hate how much space they occupy
 - ⚡️ You like keeping your disks lean and zippy
@@ -34,8 +35,6 @@ Excellent if
 Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!
 </p>
 
-
-
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
 
 <img width="1112" alt="kondo gui displaying projects" src="https://user-images.githubusercontent.com/2771466/222950846-964162a1-80c9-4cdf-a9a8-d818ba4cb34a.png">
@@ -48,7 +47,7 @@ Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pu
 </details>
 
 <details>
-<summary>UI Video</summary>
+<summary>GUI Video</summary>
 
 [kondo-ui.webm](https://user-images.githubusercontent.com/2771466/222951044-13484711-6107-45d4-aaa3-3140bbbba898.webm)
 
@@ -114,13 +113,21 @@ Supplying a path will tell `kondo` where to start. Multiple paths are supported.
 kondo code/my_project code/my_project_2
 ```
 
+Passing a time will filter projects to those that haven't been modified for at least the specified period. See `kondo --help` for the full list of options.
+
+```sh
+kondo --older 3M # only projects with last modified greater than 3 months
+```
+
+More options such as quiet mode, folowing symlinks, and filesystem restriction are viewable with `kondo --help`.
+
 ## Building/Development
 
 To build the cli `kondo` you can run `cargo build` and `cargo run` from the projects root directory.
 
 To build the gui `kondo-ui` you must first navigate into the `kondo-ui` directory, then you can run `cargo build` and `cargo run`.
 
-The output binaries will be located in `target/debug/` or `target/release` per [Cargo](https://doc.rust-lang.org/cargo/index.html) defaults.
+The output binaries will be located in `target/debug/` or `target/release/` per [Cargo](https://doc.rust-lang.org/cargo/index.html) defaults.
 
 ## Similar Projects
 
