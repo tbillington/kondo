@@ -127,7 +127,7 @@ kondo --older 3M # only projects with last modified greater than 3 months
 kondo -o3M # shorthand
 ```
 
-More options such as quiet mode, folowing symlinks, and filesystem restriction are viewable with `kondo --help`.
+More options such as quiet mode, following symlinks, and filesystem restriction are viewable with `kondo --help`.
 
 ## Building/Development
 
