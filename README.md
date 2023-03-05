@@ -150,3 +150,4 @@ The output binaries will be located in `target/debug/` or `target/release/` per 
 - [Cargo Cleanall](https://github.com/LeSnake04/cargo-cleanall)
 - [Cargo Sweep](https://github.com/holmgr/cargo-sweep)
 - [Cargo Wipe](https://github.com/mihai-dinculescu/cargo-wipe)
+- [cargo-clean-recursive](https://github.com/IgaguriMK/cargo-clean-recursive)
