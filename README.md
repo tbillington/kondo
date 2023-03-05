@@ -1,8 +1,17 @@
 # Kondo 🧹
 
-Cleans unneeded directories and files from your system.
+Cleans `node_modules`, `target`, `build`, etc from your projects.
 
-**Project Support**
+Excellent if
+- 💾 You want to back up your code but don't want to include GBs of dependencies
+- 🧑‍🎨 You try out lots of projects but hate how much space they occupy
+- ⚡️ You like keeping your disks lean and zippy
+
+<br />
+
+<p align="center">
+    <strong>14 Supported Project Types</strong>
+</p>
 <p align="center">
 <a href="https://doc.rust-lang.org/cargo/">Cargo</a>
 - <a href="https://nodejs.org/">Node</a>
@@ -21,12 +30,13 @@ Cleans unneeded directories and files from your system.
 - <a href="https://elixir-lang.org/">Elixir</a>
 - <a href="https://swift.org/">Swift</a>
 </p>
+<p align="center">
+Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!
+</p>
 
-**Command line interface**
+
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
-
-**Graphic user interface**
 
 <img width="1112" alt="kondo gui displaying projects" src="https://user-images.githubusercontent.com/2771466/222950846-964162a1-80c9-4cdf-a9a8-d818ba4cb34a.png">
 
@@ -44,90 +54,73 @@ Cleans unneeded directories and files from your system.
 
 </details>
 
-## Supports:
-
-- [Cargo](https://doc.rust-lang.org/cargo/) projects (Rust)
-- [Node](https://nodejs.org/) projects (JavaScript)
-- [Unity](https://unity.com/) projects (C#)
-- [SBT](https://www.scala-sbt.org/) projects (Scala)
-- [Haskell Stack](https://docs.haskellstack.org/) projects (Haskell)
-- [Maven](https://maven.apache.org/) projects (Java)
-- [Unreal Engine](https://www.unrealengine.com/) projects (C++)
-- [Jupyter Notebook](https://jupyter.org/) projects (Python)
-- [Python](https://www.python.org/) projects
-- [CMake](https://cmake.org) projects
-- [Composer](https://getcomposer.org/) projects (PHP)
-- [Pub](https://dart.dev/) projects (Dart)
-- [Elixir](https://elixir-lang.org/) projects
-- [Swift](https://swift.org/) projects
-
 ## Installation
 
-### Graphic User Interface
+### Command Line
 
-<a href="https://repology.org/project/rust:kondo-ui/versions">
-    <img src="https://repology.org/badge/vertical-allrepos/rust:kondo-ui.svg" alt="Packaging status">
-</a>
+**Homebrew**
 
-Windows and Mac builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo-ui`.
+```sh
+brew install kondo
+```
 
-You can install `kondo-ui` via [Cargo](https://doc.rust-lang.org/cargo/) with `cargo install kondo-ui`. Note you'll still need [druid's platform specific dependencies](https://github.com/xi-editor/druid#platform-notes) on mac and linux.
+**Source**
 
-### Command line
+Requires [rust](https://www.rust-lang.org/tools/install).
+
+```sh
+git clone https://github.com/tbillington/kondo.git
+cargo install --path kondo/kondo
+```
+
+**Others**
+
+Binaries available on the [releases page](https://github.com/tbillington/kondo/releases).
 
 <a href="https://repology.org/project/kondo/versions">
     <img src="https://repology.org/badge/vertical-allrepos/kondo.svg" alt="Packaging status">
 </a>
 
-Windows, Mac, and Linux builds are available on the [Releases](https://github.com/tbillington/kondo/releases) page as `kondo`.
-
-You can install `kondo` via [homebrew](https://formulae.brew.sh/formula/kondo) with `brew install kondo`.
-
-## Operation
-
 ### Graphic User Interface
 
-Launch `kondo-ui`, select a directory to be scanned, evaluate & clean directories as needed.
+**Source**
+
+Requires [rust](https://www.rust-lang.org/tools/install). You may need [platform specific dependencies on linux](https://github.com/xi-editor/druid#platform-notes).
+
+```sh
+git clone https://github.com/tbillington/kondo.git
+cargo install --path kondo/kondo-ui
+```
+
+Binaries available on the [releases page](https://github.com/tbillington/kondo/releases).
+
+<a href="https://repology.org/project/rust:kondo-ui/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/rust:kondo-ui.svg" alt="Packaging status">
+</a>
+
+## Usage
 
 ### Command Line Interface
 
 Running `kondo` without a directory specified will run in the current directory.
 
-```
-$ kondo
+```sh
+kondo
 ```
 
 Supplying a path will tell `kondo` where to start. Multiple paths are supported.
 
-```
-$ kondo code/my_project code/my_project_2
-```
-
-## Example Output
-
-```
-$ kondo ~/code
-/Users/choc/code/unity Cargo project
-  └─ target (489.1KiB)
-  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): y
-  deleted 489.1KiB
-
-/Users/choc/code/multiplayer-kit/generator Cargo project
-  └─ target (874.3KiB)
-  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): n
-
-/Users/choc/code/chat Cargo project
-  └─ target (37.2MiB)
-  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): q
-
-Total bytes deleted: 489.1KiB
+```sh
+kondo code/my_project code/my_project_2
 ```
 
 ## Building/Development
 
-To build `kondo` you can run `cargo build` from the projects root directory.
+To build the cli `kondo` you can run `cargo build` and `cargo run` from the projects root directory.
 
-To build `kondo-ui` you must first navigate into the `kondo-ui` directory, then you can run `cargo build`.
+To build the gui `kondo-ui` you must first navigate into the `kondo-ui` directory, then you can run `cargo build` and `cargo run`.
+
+The output binaries will be located in `target/debug/` or `target/release` per [Cargo](https://doc.rust-lang.org/cargo/index.html) defaults.
 
 ## Similar Projects
 
@@ -135,3 +128,6 @@ To build `kondo-ui` you must first navigate into the `kondo-ui` directory, then 
 - [Detox](https://github.com/whitfin/detox)
 - [Sweep](https://github.com/woubuc/sweep)
 - [npkill](https://github.com/voidcosmos/npkill)
+- [Cargo Cleanall](https://github.com/LeSnake04/cargo-cleanall)
+- [Cargo Sweep](https://github.com/holmgr/cargo-sweep)
+- [Cargo Wipe](https://github.com/mihai-dinculescu/cargo-wipe)
