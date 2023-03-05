@@ -2,16 +2,19 @@
 
 Cleans unneeded directories and files from your system.
 
+**Project Support**
 <p align="center">
 <a href="https://doc.rust-lang.org/cargo/">Cargo</a>
 - <a href="https://nodejs.org/">Node</a>
 - <a href="https://unity.com/">Unity</a>
-- <a href="https://www.scala-sbt.org/">SBT</a>
+- <a href="https://www.scala-sbt.org/">Scala SBT</a>
 - <a href="https://docs.haskellstack.org/">Haskell Stack</a>
 - <a href="https://maven.apache.org/">Maven</a>
 - <a href="https://www.unrealengine.com/">Unreal Engine</a>
-- <a href="https://jupyter.org/">Jupyter Notebook</a>
 - <a href="https://www.python.org/">Python</a>
+</p>
+<p align="center">
+<a href="https://jupyter.org/">Jupyter Notebook</a>
 - <a href="https://cmake.org">CMake</a>
 - <a href="https://getcomposer.org/">Composer</a>
 - <a href="https://dart.dev/">Pub</a>
