@@ -117,6 +117,7 @@ Passing a time will filter projects to those that haven't been modified for at l
 
 ```sh
 kondo --older 3M # only projects with last modified greater than 3 months
+kondo -o3M # shorthand
 ```
 
 More options such as quiet mode, folowing symlinks, and filesystem restriction are viewable with `kondo --help`.
