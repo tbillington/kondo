@@ -106,6 +106,10 @@ Binaries available on the [releases page](https://github.com/tbillington/kondo/r
 
 ## Usage
 
+> **Warning**
+>
+> Kondo is [_essentially_](https://github.com/tbillington/kondo/blob/a7af95484d364bbb12eb3b40b0d860424dd1b714/kondo-lib/src/lib.rs#L236) `rm -rf` with a prompt. Use at your own discretion. Always have a backup of your projects.
+
 ### Command Line Interface
 
 Running `kondo` without a directory specified will run in the current directory.
