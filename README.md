@@ -1,6 +1,6 @@
 # Kondo 🧹
 
-Cleans `node_modules`, `target`, `build`, etc from your projects.
+Cleans `node_modules`, `target`, `build`, and friends from your projects.
 
 Excellent if
 
