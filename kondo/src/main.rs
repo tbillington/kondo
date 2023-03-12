@@ -4,7 +4,7 @@ use std::{
     env::current_dir,
     error::Error,
     fmt,
-    io::{stdin, stdout, BufRead, Write},
+    io::{stdin, stdout, Write},
     num::ParseIntError,
     path::PathBuf,
     sync::mpsc::{Receiver, Sender, SyncSender},
