@@ -7,9 +7,12 @@ use std::{
     io::{stdin, stdout, BufRead, Write},
     num::ParseIntError,
     path::PathBuf,
+    sync::mpsc::{Receiver, Sender, SyncSender},
 };
 
-use kondo_lib::{dir_size, path_canonicalise, pretty_size, print_elapsed, scan, ScanOptions};
+use kondo_lib::{
+    dir_size, path_canonicalise, pretty_size, print_elapsed, scan, Project, ScanOptions,
+};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "kondo")]
@@ -125,58 +128,32 @@ pub fn parse_age_filter(age_filter: &str) -> Result<u64, ParseAgeFilterError> {
     Ok(seconds)
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let opt = Opt::from_args();
+type DiscoverData = (Project, Vec<(String, u64)>, u64, String);
+type DeleteData = (Project, u64);
 
-    if opt.quiet > 0 && !opt.all {
-        eprintln!("Quiet mode can only be used with --all.");
-        std::process::exit(1);
-    }
-
-    let stdout = stdout();
-    let mut write_handle = stdout.lock();
-    let mut write_buffer = String::with_capacity(2048);
-
-    let stdin = stdin();
-    let mut read_handle = stdin.lock();
-
-    let dirs = prepare_directories(opt.dirs)?;
-    let mut projects_cleaned = 0;
-    let mut bytes_deleted = 0;
-
-    let mut clean_all = opt.all;
-
-    let scan_options: ScanOptions = ScanOptions {
-        follow_symlinks: opt.follow_symlinks,
-        same_file_system: opt.same_filesystem,
-    };
-
-    'project_loop: for project in dirs
+fn discover(
+    dirs: Vec<PathBuf>,
+    scan_options: &ScanOptions,
+    project_min_age: u64,
+    result_sender: SyncSender<DiscoverData>,
+) {
+    for project in dirs
         .iter()
-        .flat_map(|dir| scan(dir, &scan_options))
+        .flat_map(|dir| scan(dir, scan_options))
         .filter_map(|p| p.ok())
     {
-        write_buffer.clear();
-
-        let project_artifact_bytes = project
+        let artifact_dir_sizes: Vec<_> = project
             .artifact_dirs()
             .iter()
             .copied()
             .filter_map(
-                |dir| match dir_size(&project.path.join(dir), &scan_options) {
+                |dir| match dir_size(&project.path.join(dir), scan_options) {
                     0 => None,
-                    size => Some((dir, size)),
+                    size => Some((dir.to_owned(), size)),
                 },
             )
-            .map(|(dir, size)| {
-                write_buffer.push_str("\n  └─ ");
-                write_buffer.push_str(dir);
-                write_buffer.push_str(" (");
-                write_buffer.push_str(&pretty_size(size));
-                write_buffer.push(')');
-                size
-            })
-            .sum::<u64>();
+            .collect();
+        let project_artifact_bytes = artifact_dir_sizes.iter().map(|(_, bytes)| bytes).sum();
 
         if project_artifact_bytes == 0 {
             continue;
@@ -185,7 +162,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut last_modified_str = String::new();
         let mut last_modified_int: u64 = 0;
 
-        if let Ok(last_modified) = project.last_modified(&scan_options) {
+        if let Ok(last_modified) = project.last_modified(scan_options) {
             if let Ok(elapsed) = last_modified.elapsed() {
                 last_modified_int = elapsed.as_secs();
                 let elapsed = print_elapsed(last_modified_int);
@@ -193,31 +170,62 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        if last_modified_int < opt.older {
+        if last_modified_int < project_min_age {
             continue;
         }
 
-        if opt.quiet == 0 {
-            writeln!(
-                &mut write_handle,
-                "{} {} project {last_modified_str}{}",
+        if result_sender
+            .send((
+                project,
+                artifact_dir_sizes,
+                project_artifact_bytes,
+                last_modified_str,
+            ))
+            .is_err()
+        {
+            // interactive prompt has finished, silently finish here
+            break;
+        }
+    }
+}
+
+fn process_deletes(project_recv: Receiver<DeleteData>) -> Vec<(Project, u64)> {
+    project_recv
+        .into_iter()
+        .map(|(project, artifact_bytes)| {
+            project.clean();
+            (project, artifact_bytes)
+        })
+        .collect()
+}
+
+fn interactive_prompt(
+    projects_recv: Receiver<DiscoverData>,
+    deletes_send: Sender<DeleteData>,
+    quiet: u8,
+    mut clean_all: bool,
+) {
+    'project_loop: for (project, artifact_dirs, artifact_bytes, last_modified) in projects_recv {
+        if quiet == 0 {
+            println!(
+                "{} {} project {last_modified}",
                 &project.name(),
                 project.type_name(),
-                write_buffer
-            )?;
+            );
+            for (dir, size) in artifact_dirs {
+                println!("  └─ {dir} ({})", pretty_size(size));
+            }
         }
 
         let clean_project = if clean_all {
             true
         } else {
             loop {
-                write!(
-                    &mut write_handle,
-                    "  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): "
-                )?;
-                write_handle.flush()?;
+                print!("  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): ");
+                stdout().flush().unwrap();
                 let mut choice = String::new();
-                read_handle.read_line(&mut choice)?;
+
+                stdin().read_line(&mut choice).unwrap();
                 match choice.trim_end() {
                     "y" => break true,
                     "n" => break false,
@@ -226,42 +234,69 @@ fn main() -> Result<(), Box<dyn Error>> {
                         break true;
                     }
                     "q" => {
-                        writeln!(&mut write_handle)?;
+                        println!();
                         break 'project_loop;
                     }
-                    _ => writeln!(
-                        &mut write_handle,
-                        "  invalid choice, please choose between y, n, a, or q."
-                    )?,
+                    _ => println!("  invalid choice, please choose between y, n, a, or q."),
                 }
             }
         };
 
         if clean_project {
-            project.clean();
-            if opt.quiet == 0 {
-                writeln!(
-                    &mut write_handle,
-                    "  deleted {}",
-                    &pretty_size(project_artifact_bytes)
-                )?;
+            // TODO: Return an error that indicates a partial failure, not a show stopper
+            if let Err(e) = deletes_send.send((project, artifact_bytes)) {
+                eprintln!(
+                    "no further projects will be scanned, error sending to delete thread {e}"
+                );
+                break;
             }
-            bytes_deleted += project_artifact_bytes;
-            projects_cleaned += 1;
-        }
-
-        if opt.quiet == 0 {
-            writeln!(&mut write_handle)?;
         }
     }
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let opt = Opt::from_args();
+
+    if opt.quiet > 0 && !opt.all {
+        eprintln!("Quiet mode can only be used with --all.");
+        std::process::exit(1);
+    }
+
+    let dirs = prepare_directories(opt.dirs)?;
+
+    let scan_options: ScanOptions = ScanOptions {
+        follow_symlinks: opt.follow_symlinks,
+        same_file_system: opt.same_filesystem,
+    };
+
+    let (proj_discover_send, proj_discover_recv) = std::sync::mpsc::sync_channel::<DiscoverData>(5);
+    let (proj_delete_send, proj_delete_recv) = std::sync::mpsc::channel::<(Project, u64)>();
+
+    let project_min_age = opt.older;
+    std::thread::spawn(move || {
+        discover(dirs, &scan_options, project_min_age, proj_discover_send);
+    });
+
+    let delete_handle = std::thread::spawn(move || process_deletes(proj_delete_recv));
+
+    interactive_prompt(proj_discover_recv, proj_delete_send, opt.quiet, opt.all);
+
+    let delete_results = match delete_handle.join() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error in delete thread, {e:?}");
+            std::process::exit(1);
+        }
+    };
 
     if opt.quiet < 2 {
-        writeln!(
-            &mut write_handle,
+        let projects_cleaned = delete_results.len();
+        let bytes_deleted = delete_results.iter().map(|(_, bytes)| bytes).sum();
+        println!(
             "Projects cleaned: {}, Bytes deleted: {}",
             projects_cleaned,
             pretty_size(bytes_deleted)
-        )?;
+        );
     }
 
     Ok(())
