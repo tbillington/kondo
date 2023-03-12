@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     error::{self, Error},
     fs, path,
     time::SystemTime,
@@ -120,8 +121,8 @@ impl Project {
         }
     }
 
-    pub fn name(&self) -> String {
-        self.path.to_str().unwrap().to_string()
+    pub fn name(&self) -> Cow<str> {
+        self.path.to_string_lossy()
     }
 
     pub fn size(&self, options: &ScanOptions) -> u64 {
@@ -266,11 +267,7 @@ pub fn print_elapsed(secs: u64) -> String {
 }
 
 fn is_hidden(entry: &walkdir::DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false)
+    entry.file_name().to_string_lossy().starts_with('.')
 }
 
 struct ProjectIter {
