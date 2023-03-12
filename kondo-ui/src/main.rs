@@ -188,7 +188,7 @@ fn spawn_scanner_thread(
                     scan(&p, &options)
                         .filter_map(|p| p.ok())
                         .for_each(|project| {
-                            let name = project.name();
+                            let name = project.name().to_string();
                             let project_size = project.size_dirs(&options);
                             let display = path::Path::new(&name)
                                 .file_name()

@@ -1,6 +1,6 @@
 [package]
 name = "kondo-lib"
-version = "0.3.0"
+version = "0.6.0"
 authors = ["Trent Billington <trent.h.billington@gmail.com>"]
 edition = "2018"
 description = "Shared code lib for kondo and kondo-ui."
