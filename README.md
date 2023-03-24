@@ -30,6 +30,7 @@ Excellent if
 - <a href="https://dart.dev/">Pub</a>
 - <a href="https://elixir-lang.org/">Elixir</a>
 - <a href="https://swift.org/">Swift</a>
+- <a href="https://gradle.com/">Gradle</a>
 </p>
 <p align="center">
 Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!
