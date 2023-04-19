@@ -11,6 +11,7 @@ const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
 const FILE_MVN_BUILD: &str = "pom.xml";
+const FILE_BUILD_GRADLE: &str = "build.gradle";
 const FILE_CMAKE_BUILD: &str = "CMakeLists.txt";
 const FILE_UNREAL_SUFFIX: &str = ".uproject";
 const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
@@ -34,6 +35,7 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
+const PROJECT_GRADLE_DIRS: [&str; 3] = ["bin", "build", ".gradle"];
 const PROJECT_CMAKE_DIRS: [&str; 1] = ["build"];
 const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "Binaries",
@@ -60,6 +62,7 @@ const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
+const PROJECT_GRADLE_NAME: &str = "Gradle";
 const PROJECT_CMAKE_NAME: &str = "CMake";
 const PROJECT_UNREAL_NAME: &str = "Unreal";
 const PROJECT_JUPYTER_NAME: &str = "Jupyter";
@@ -78,6 +81,7 @@ pub enum ProjectType {
     #[allow(clippy::upper_case_acronyms)]
     SBT,
     Maven,
+    Gradle,
     CMake,
     Unreal,
     Jupyter,
@@ -118,6 +122,7 @@ impl Project {
             ProjectType::Pub => &PROJECT_PUB_DIRS,
             ProjectType::Elixir => &PROJECT_ELIXIR_DIRS,
             ProjectType::Swift => &PROJECT_SWIFT_DIRS,
+            ProjectType::Gradle => &PROJECT_GRADLE_DIRS,
         }
     }
 
@@ -222,6 +227,7 @@ impl Project {
             ProjectType::Pub => PROJECT_PUB_NAME,
             ProjectType::Elixir => PROJECT_ELIXIR_NAME,
             ProjectType::Swift => PROJECT_SWIFT_NAME,
+            ProjectType::Gradle => PROJECT_GRADLE_NAME,
         }
     }
 
@@ -319,6 +325,7 @@ impl Iterator for ProjectIter {
                     FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
                     FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                     FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
+                    FILE_BUILD_GRADLE => Some(ProjectType::Gradle),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
