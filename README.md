@@ -11,7 +11,7 @@ Excellent if
 <br />
 
 <p align="center">
-    <strong>14 Supported Project Types</strong>
+    <strong>15 Supported Project Types</strong>
 </p>
 <p align="center">
 <a href="https://doc.rust-lang.org/cargo/">Cargo</a>
