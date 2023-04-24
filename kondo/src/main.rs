@@ -1,5 +1,3 @@
-use structopt::StructOpt;
-
 use std::{
     env::current_dir,
     error::Error,
@@ -10,38 +8,41 @@ use std::{
     sync::mpsc::{Receiver, Sender, SyncSender},
 };
 
+use clap::Parser;
+
 use kondo_lib::{
     dir_size, path_canonicalise, pretty_size, print_elapsed, scan, Project, ScanOptions,
 };
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "kondo")]
+// Below needs updating every time a new project type is added!
+#[derive(Parser, Debug)]
+#[command(name = "kondo")]
 /// Kondo recursively cleans project directories.
 ///
-/// Supported project types: Cargo, Node, Unity, SBT, Haskell Stack, Maven, Unreal Engine, Jupyter Notebook, and Python projects.
+/// Supported project types: Cargo, Node, Unity, SBT, Haskell Stack, Maven, Unreal Engine, Jupyter Notebook, Python, Jupyter Notebooks,CMake, Composer, Pub, Elixir, Swift, and Gradle projects.
 struct Opt {
     /// The directories to examine. Current directory will be used if DIRS is omitted.
-    #[structopt(name = "DIRS", parse(from_os_str))]
+    #[arg(name = "DIRS")]
     dirs: Vec<PathBuf>,
 
     /// Quiet mode. Won't output to the terminal. -qq prevents all output.
-    #[structopt(short, long, parse(from_occurrences))]
+    #[arg(short, long, action = clap::ArgAction::Count, value_parser = clap::value_parser!(u8).range(0..3))]
     quiet: u8,
 
     /// Clean all found projects without confirmation.
-    #[structopt(short, long)]
+    #[arg(short, long)]
     all: bool,
 
     /// Follow symbolic links
-    #[structopt(short = "L", long)]
+    #[arg(short = 'L', long)]
     follow_symlinks: bool,
 
     /// Restrict directory traversal to the root filesystem
-    #[structopt(short, long)]
+    #[arg(short, long)]
     same_filesystem: bool,
 
     /// Only directories with a file last modified n units of time ago will be looked at. Ex: 20d. Units are m: minutes, h: hours, d: days, w: weeks, M: months and y: years.
-    #[structopt(short, long, parse(try_from_str = parse_age_filter), default_value = "0d")]
+    #[arg(short, long, value_parser = parse_age_filter, default_value = "0d")]
     older: u64,
 }
 
@@ -99,6 +100,8 @@ impl From<ParseIntError> for ParseAgeFilterError {
         Self::ParseIntError(e)
     }
 }
+
+impl Error for ParseAgeFilterError {}
 
 pub fn parse_age_filter(age_filter: &str) -> Result<u64, ParseAgeFilterError> {
     const MINUTE: u64 = 60;
@@ -255,7 +258,7 @@ fn interactive_prompt(
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     if opt.quiet > 0 && !opt.all {
         eprintln!("Quiet mode can only be used with --all.");
