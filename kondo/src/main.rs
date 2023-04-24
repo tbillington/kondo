@@ -249,11 +249,11 @@ fn interactive_prompt(
                     "a" => {
                         clean_all = true;
                         break true;
-                    },
+                    }
                     "q" => {
                         println!();
                         break 'project_loop;
-                    },
+                    }
                     "" => {
                         if default {
                             println!("  defaulting to yes...");
@@ -261,7 +261,7 @@ fn interactive_prompt(
                         } else {
                             println!("  no input, please choose between y, n, a, or q.");
                         }
-                    },
+                    }
                     _ => println!("  invalid choice, please choose between y, n, a, or q."),
                 }
             }
