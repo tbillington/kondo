@@ -19,7 +19,7 @@ edition = "2018"
 
 
 [dependencies]
-structopt = "0.3"
+clap = { version = "4", features = ["derive"] }
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
