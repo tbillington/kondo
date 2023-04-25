@@ -46,7 +46,7 @@ struct Opt {
     older: u64,
 
     /// If there is no input, defaults to yes
-    #[structopt(short, long)]
+    #[arg(short, long)]
     default: bool,
 }
 
