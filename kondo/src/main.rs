@@ -44,6 +44,10 @@ struct Opt {
     /// Only directories with a file last modified n units of time ago will be looked at. Ex: 20d. Units are m: minutes, h: hours, d: days, w: weeks, M: months and y: years.
     #[arg(short, long, value_parser = parse_age_filter, default_value = "0d")]
     older: u64,
+
+    /// If there is no input, defaults to yes
+    #[arg(short, long)]
+    default: bool,
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -207,6 +211,7 @@ fn interactive_prompt(
     deletes_send: Sender<DeleteData>,
     quiet: u8,
     mut clean_all: bool,
+    default: bool,
 ) {
     'project_loop: for (project, artifact_dirs, artifact_bytes, last_modified) in projects_recv {
         if quiet == 0 {
@@ -224,7 +229,16 @@ fn interactive_prompt(
             true
         } else {
             loop {
-                print!("  delete above artifact directories? ([y]es, [n]o, [a]ll, [q]uit): ");
+                print!(
+                    "  delete above artifact directories? ([{}]es, [n]o, [a]ll, [q]uit): ",
+                    {
+                        if default {
+                            "Y"
+                        } else {
+                            "y"
+                        }
+                    }
+                );
                 stdout().flush().unwrap();
                 let mut choice = String::new();
 
@@ -239,6 +253,14 @@ fn interactive_prompt(
                     "q" => {
                         println!();
                         break 'project_loop;
+                    }
+                    "" => {
+                        if default {
+                            println!("  defaulting to yes...");
+                            break true;
+                        } else {
+                            println!("  no input, please choose between y, n, a, or q.");
+                        }
                     }
                     _ => println!("  invalid choice, please choose between y, n, a, or q."),
                 }
@@ -282,7 +304,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let delete_handle = std::thread::spawn(move || process_deletes(proj_delete_recv));
 
-    interactive_prompt(proj_discover_recv, proj_delete_send, opt.quiet, opt.all);
+    interactive_prompt(
+        proj_discover_recv,
+        proj_delete_send,
+        opt.quiet,
+        opt.all,
+        opt.default,
+    );
 
     let delete_results = match delete_handle.join() {
         Ok(r) => r,
