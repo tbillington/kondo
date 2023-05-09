@@ -71,6 +71,13 @@ Current <a href="https://github.com/tbillington/kondo/blob/a7af95484d364bbb12eb3
 brew install kondo
 ```
 
+**Arch Linux**
+
+```sh
+pacman -S kondo
+pacman -S kondo-ui
+```
+
 **Source**
 
 Requires [rust](https://www.rust-lang.org/tools/install).
