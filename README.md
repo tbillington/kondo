@@ -75,7 +75,6 @@ brew install kondo
 
 ```sh
 pacman -S kondo
-pacman -S kondo-ui
 ```
 
 **Source**
@@ -96,6 +95,13 @@ Binaries available on the [releases page](https://github.com/tbillington/kondo/r
 </a>
 
 ### Graphic User Interface
+
+
+**Arch Linux**
+
+```sh
+pacman -S kondo-ui
+```
 
 **Source**
 
