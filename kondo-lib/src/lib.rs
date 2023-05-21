@@ -12,6 +12,7 @@ const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_SBT_BUILD: &str = "build.sbt";
 const FILE_MVN_BUILD: &str = "pom.xml";
 const FILE_BUILD_GRADLE: &str = "build.gradle";
+const FILE_BUILD_GRADLE_KTS: &str = "build.gradle.kts";
 const FILE_CMAKE_BUILD: &str = "CMakeLists.txt";
 const FILE_UNREAL_SUFFIX: &str = ".uproject";
 const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
@@ -326,6 +327,7 @@ impl Iterator for ProjectIter {
                     FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                     FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                     FILE_BUILD_GRADLE => Some(ProjectType::Gradle),
+                    FILE_BUILD_GRADLE_KTS => Some(ProjectType::Gradle),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
