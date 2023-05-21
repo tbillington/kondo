@@ -35,7 +35,7 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
-const PROJECT_GRADLE_DIRS: [&str; 3] = ["bin", "build", ".gradle"];
+const PROJECT_GRADLE_DIRS: [&str; 2] = ["build", ".gradle"];
 const PROJECT_CMAKE_DIRS: [&str; 1] = ["build"];
 const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "Binaries",
