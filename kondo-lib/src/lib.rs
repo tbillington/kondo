@@ -317,7 +317,11 @@ impl Iterator for ProjectIter {
             };
             // intentionally ignoring errors while iterating the ReadDir
             // can't return them because we'll lose the context of where we are
-            for dir_entry in rd.filter_map(|rd| rd.ok()).map(|de| de.file_name()) {
+            for dir_entry in rd
+                .filter_map(|rd| rd.ok())
+                .filter(|de| de.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+                .map(|de| de.file_name())
+            {
                 let file_name = match dir_entry.to_str() {
                     None => continue,
                     Some(file_name) => file_name,
