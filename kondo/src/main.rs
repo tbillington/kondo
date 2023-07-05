@@ -25,6 +25,10 @@ struct Opt {
     #[arg(name = "DIRS")]
     dirs: Vec<PathBuf>,
 
+    /// Directories to ignore. Will also prevent recursive traversal within.
+    #[arg(short = 'I', long)]
+    ignored_dirs: Vec<PathBuf>,
+
     /// Quiet mode. Won't output to the terminal. -qq prevents all output.
     #[arg(short, long, action = clap::ArgAction::Count, value_parser = clap::value_parser!(u8).range(0..3))]
     quiet: u8,
@@ -143,11 +147,13 @@ fn discover(
     scan_options: &ScanOptions,
     project_min_age: u64,
     result_sender: SyncSender<DiscoverData>,
+    ignored_dirs: &[PathBuf],
 ) {
     for project in dirs
         .iter()
         .flat_map(|dir| scan(dir, scan_options))
         .filter_map(|p| p.ok())
+        .filter(|p| ignored_dirs.iter().all(|i| !p.path.starts_with(i)))
     {
         let artifact_dir_sizes: Vec<_> = project
             .artifact_dirs()
@@ -280,7 +286,7 @@ fn interactive_prompt(
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let opt = Opt::parse();
+    let mut opt = Opt::parse();
 
     if opt.quiet > 0 && !opt.all {
         eprintln!("Quiet mode can only be used with --all.");
@@ -298,8 +304,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (proj_delete_send, proj_delete_recv) = std::sync::mpsc::channel::<(Project, u64)>();
 
     let project_min_age = opt.older;
+    let ignored_dirs = prepare_directories(std::mem::take(&mut opt.ignored_dirs))?;
     std::thread::spawn(move || {
-        discover(dirs, &scan_options, project_min_age, proj_discover_send);
+        discover(
+            dirs,
+            &scan_options,
+            project_min_age,
+            proj_discover_send,
+            &ignored_dirs,
+        );
     });
 
     let delete_handle = std::thread::spawn(move || process_deletes(proj_delete_recv));
