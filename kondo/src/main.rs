@@ -304,7 +304,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (proj_delete_send, proj_delete_recv) = std::sync::mpsc::channel::<(Project, u64)>();
 
     let project_min_age = opt.older;
-    let ignored_dirs = prepare_directories(std::mem::take(&mut opt.ignored_dirs))?;
+    let ignored_dirs = {
+        let cd = current_dir()?;
+
+        std::mem::take(&mut opt.ignored_dirs)
+            .into_iter()
+            .map(|dir| path_canonicalise(&cd, dir))
+            .collect::<Result<Vec<_>, _>>()?
+    };
+
     std::thread::spawn(move || {
         discover(
             dirs,
