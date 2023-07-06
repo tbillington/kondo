@@ -1,6 +1,6 @@
 [package]
 name = "kondo-ui"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Trent Billington <trent.h.billington@gmail.com>"]
 description = """
 kondo-ui is a filesystem cleaning tool that recursively searches directories
@@ -10,7 +10,7 @@ like build artifacts.
 documentation = "https://github.com/tbillington/kondo"
 homepage = "https://github.com/tbillington/kondo"
 repository = "https://github.com/tbillington/kondo"
-edition = "2018"
+edition = "2021"
 license = "MIT"
 keywords = ["clean", "cleanup", "delete", "free"]
 
@@ -21,7 +21,7 @@ druid = "0.7"
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
-version = "0.6"
+version = "0.7"
 
 [profile.release]
 incremental = false
