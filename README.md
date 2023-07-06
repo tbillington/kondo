@@ -31,6 +31,7 @@ Excellent if
 - <a href="https://elixir-lang.org/">Elixir</a>
 - <a href="https://swift.org/">Swift</a>
 - <a href="https://gradle.com/">Gradle</a>
+- <a href="https://ziglang.org/">Zig</a>
 </p>
 <p align="center">
 Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!
@@ -95,7 +96,6 @@ Binaries available on the [releases page](https://github.com/tbillington/kondo/r
 </a>
 
 ### Graphic User Interface
-
 
 **Arch Linux**
 
