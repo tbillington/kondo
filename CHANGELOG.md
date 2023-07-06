@@ -1,3 +1,13 @@
+# 0.7 2023-07-06
+
+- Add support for Gradle projects by @s-aditya-k and @Lipen in https://github.com/tbillington/kondo/pull/81, https://github.com/tbillington/kondo/pull/85
+- Upgrade from structopt to clap by @s-aditya-k in @https://github.com/tbillington/kondo/pull/82
+- Support default clean operation by @s-aditya-k in https://github.com/tbillington/kondo/pull/83
+- Add Arch Linux install instructions by @orhun in https://github.com/tbillington/kondo/pull/84
+- Support more types of Python artifact dirs by @trag1c in https://github.com/tbillington/kondo/pull/88
+- Support ignoring specified dirs by @tbillington in https://github.com/tbillington/kondo/pull/90
+- Add support for Zig projects by @orhun in https://github.com/tbillington/kondo/pull/92
+
 # 0.6 2022-12-25
 
 - add support for cmake projects by @sassman in https://github.com/tbillington/kondo/pull/56
