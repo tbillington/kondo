@@ -230,7 +230,7 @@ dependencies = [
 
 [[package]]
 name = "kondo"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "clap",
  "kondo-lib",
@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "kondo-lib"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "ignore",
  "walkdir",
