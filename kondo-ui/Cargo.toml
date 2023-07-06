@@ -10,7 +10,7 @@ like build artifacts.
 documentation = "https://github.com/tbillington/kondo"
 homepage = "https://github.com/tbillington/kondo"
 repository = "https://github.com/tbillington/kondo"
-edition = "2018"
+edition = "2021"
 license = "MIT"
 keywords = ["clean", "cleanup", "delete", "free"]
 
