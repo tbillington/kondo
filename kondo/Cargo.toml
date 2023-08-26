@@ -17,11 +17,28 @@ keywords = ["clean", "cleanup", "delete", "free"]
 exclude = ["test_dir"]
 edition = "2021"
 
-
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 
+[dev-dependencies]
+# need recursive copy for testing
+fs_extra = "1.3.0"
+
+# need temporary test dirs
+tempfile = "3.8.0"
+
 [dependencies.kondo-lib]
 path = "../kondo-lib"
 version = "0.7"
+
+[lib]
+# rlib here is important for getting our integ test to run
+# https://github.com/rust-lang/cargo/issues/6659
+crate-type = ["rlib", "staticlib", "cdylib"]
+bench = false
+
+[[bin]]
+name = "kondo"
+test = true
+bench = false

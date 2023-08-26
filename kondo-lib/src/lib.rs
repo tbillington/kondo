@@ -1,3 +1,5 @@
+mod lib_test;
+
 use std::{
     borrow::Cow,
     error::{self, Error},
