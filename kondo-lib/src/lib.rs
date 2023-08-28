@@ -277,7 +277,7 @@ pub fn print_elapsed(secs: u64) -> String {
         secs if secs < WEEK * 2 => (secs as f64 / DAY as f64, "day"),
         secs if secs < MONTH * 2 => (secs as f64 / WEEK as f64, "week"),
         secs if secs < YEAR * 2 => (secs as f64 / MONTH as f64, "month"),
-        secs => (secs as f64 / MONTH as f64, "year"),
+        secs => (secs as f64 / YEAR as f64, "year"),
     };
 
     let unit = unit.round();
@@ -477,5 +477,49 @@ pub fn path_canonicalise(
         Ok(tail)
     } else {
         Ok(base.join(tail).canonicalize()?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::print_elapsed;
+
+    #[test]
+    fn elapsed() {
+        assert_eq!(print_elapsed(0), "0 seconds ago");
+        assert_eq!(print_elapsed(1), "1 second ago");
+        assert_eq!(print_elapsed(2), "2 seconds ago");
+        assert_eq!(print_elapsed(59), "59 seconds ago");
+        assert_eq!(print_elapsed(60), "1 minute ago");
+        assert_eq!(print_elapsed(61), "1 minute ago");
+        assert_eq!(print_elapsed(119), "2 minutes ago");
+        assert_eq!(print_elapsed(120), "2 minutes ago");
+        assert_eq!(print_elapsed(121), "2 minutes ago");
+        assert_eq!(print_elapsed(3599), "60 minutes ago");
+        assert_eq!(print_elapsed(3600), "60 minutes ago");
+        assert_eq!(print_elapsed(3601), "60 minutes ago");
+        assert_eq!(print_elapsed(7199), "120 minutes ago");
+        assert_eq!(print_elapsed(7200), "2 hours ago");
+        assert_eq!(print_elapsed(7201), "2 hours ago");
+        assert_eq!(print_elapsed(86399), "24 hours ago");
+        assert_eq!(print_elapsed(86400), "24 hours ago");
+        assert_eq!(print_elapsed(86401), "24 hours ago");
+        assert_eq!(print_elapsed(172799), "48 hours ago");
+        assert_eq!(print_elapsed(172800), "2 days ago");
+        assert_eq!(print_elapsed(172801), "2 days ago");
+        assert_eq!(print_elapsed(604799), "7 days ago");
+        assert_eq!(print_elapsed(604800), "7 days ago");
+        assert_eq!(print_elapsed(604801), "7 days ago");
+        assert_eq!(print_elapsed(1209599), "14 days ago");
+        assert_eq!(print_elapsed(1209600), "2 weeks ago");
+        assert_eq!(print_elapsed(1209601), "2 weeks ago");
+        assert_eq!(print_elapsed(2419199), "4 weeks ago");
+        assert_eq!(print_elapsed(2419200), "4 weeks ago");
+        assert_eq!(print_elapsed(2419201), "4 weeks ago");
+        assert_eq!(print_elapsed(2419200 * 2), "2 months ago");
+        assert_eq!(print_elapsed(2419200 * 3), "3 months ago");
+        assert_eq!(print_elapsed(2419200 * 12), "12 months ago");
+        assert_eq!(print_elapsed(2419200 * 25), "2 years ago");
+        assert_eq!(print_elapsed(2419200 * 48), "4 years ago");
     }
 }
