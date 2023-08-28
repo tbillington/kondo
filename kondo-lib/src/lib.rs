@@ -519,7 +519,7 @@ mod tests {
         assert_eq!(print_elapsed(2419200 * 2), "2 months ago");
         assert_eq!(print_elapsed(2419200 * 3), "3 months ago");
         assert_eq!(print_elapsed(2419200 * 12), "12 months ago");
-        assert_eq!(print_elapsed(2419200 * 25), "2 years ago");
+        assert_eq!(print_elapsed(2419200 * 25), "25 months ago");
         assert_eq!(print_elapsed(2419200 * 48), "4 years ago");
     }
 }
