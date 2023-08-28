@@ -117,7 +117,7 @@ pub fn parse_age_filter(age_filter: &str) -> Result<u64, ParseAgeFilterError> {
     const DAY: u64 = HOUR * 24;
     const WEEK: u64 = DAY * 7;
     const MONTH: u64 = WEEK * 4;
-    const YEAR: u64 = MONTH * 12;
+    const YEAR: u64 = DAY * 365;
 
     let (digit_end, unit) = age_filter
         .char_indices()

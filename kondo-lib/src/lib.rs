@@ -268,7 +268,7 @@ pub fn print_elapsed(secs: u64) -> String {
     const DAY: u64 = HOUR * 24;
     const WEEK: u64 = DAY * 7;
     const MONTH: u64 = WEEK * 4;
-    const YEAR: u64 = MONTH * 12;
+    const YEAR: u64 = DAY * 365;
 
     let (unit, fstring) = match secs {
         secs if secs < MINUTE => (secs as f64, "second"),
