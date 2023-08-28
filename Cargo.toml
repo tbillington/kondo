@@ -1,11 +1,7 @@
 [workspace]
-members = [
-  "kondo",
-  "kondo-lib",
-]
-exclude = [
-  "kondo-ui"
-]
+members = ["kondo", "kondo-lib"]
+exclude = ["kondo-ui"]
+resolver = "2"
 
 [profile.release]
 lto = true
