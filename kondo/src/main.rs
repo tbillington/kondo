@@ -302,8 +302,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         eprintln!("Generating completion file for {generator:?}...");
         print_completions(generator, &mut cmd);
         return Ok(());
-    } else {
-        println!("{opt:#?}");
     }
 
     if opt.quiet > 0 && !opt.all {
