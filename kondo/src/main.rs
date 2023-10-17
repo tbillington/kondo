@@ -51,7 +51,7 @@ struct Opt {
     older: u64,
 
     /// Generates completions for the specified shell
-    #[arg(short = 'c', long = "completions", value_enum)]
+    #[arg(long = "completions", value_enum)]
     generator: Option<Shell>,
 
     /// If there is no input, defaults to yes
