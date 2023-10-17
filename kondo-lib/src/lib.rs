@@ -22,10 +22,11 @@ const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 const FILE_ELIXIR_MIX: &str = "mix.exs";
 const FILE_SWIFT_PACKAGE: &str = "Package.swift";
 const FILE_BUILD_ZIG: &str = "build.zig";
+const FILE_DIRENV_ENVRC: &str = ".envrc";
 
-const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
-const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
-const PROJECT_UNITY_DIRS: [&str; 7] = [
+const PROJECT_CARGO_DIRS: &[&str] = &["target"];
+const PROJECT_NODE_DIRS: &[&str] = &["node_modules", ".angular"];
+const PROJECT_UNITY_DIRS: &[&str] = &[
     "Library",
     "Temp",
     "Obj",
@@ -34,20 +35,20 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Build",
     "Builds",
 ];
-const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
-const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
-const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
-const PROJECT_GRADLE_DIRS: [&str; 2] = ["build", ".gradle"];
-const PROJECT_CMAKE_DIRS: [&str; 1] = ["build"];
-const PROJECT_UNREAL_DIRS: [&str; 5] = [
+const PROJECT_STACK_DIRS: &[&str] = &[".stack-work"];
+const PROJECT_SBT_DIRS: &[&str] = &["target", "project/target"];
+const PROJECT_MVN_DIRS: &[&str] = &["target"];
+const PROJECT_GRADLE_DIRS: &[&str] = &["build", ".gradle"];
+const PROJECT_CMAKE_DIRS: &[&str] = &["build"];
+const PROJECT_UNREAL_DIRS: &[&str] = &[
     "Binaries",
     "Build",
     "Saved",
     "DerivedDataCache",
     "Intermediate",
 ];
-const PROJECT_JUPYTER_DIRS: [&str; 1] = [".ipynb_checkpoints"];
-const PROJECT_PYTHON_DIRS: [&str; 7] = [
+const PROJECT_JUPYTER_DIRS: &[&str] = &[".ipynb_checkpoints"];
+const PROJECT_PYTHON_DIRS: &[&str] = &[
     ".mypy_cache",
     ".nox",
     ".pytest_cache",
@@ -56,16 +57,17 @@ const PROJECT_PYTHON_DIRS: [&str; 7] = [
     "__pycache__",
     "__pypackages__",
 ];
-const PROJECT_COMPOSER_DIRS: [&str; 1] = ["vendor"];
-const PROJECT_PUB_DIRS: [&str; 4] = [
+const PROJECT_COMPOSER_DIRS: &[&str] = &["vendor"];
+const PROJECT_PUB_DIRS: &[&str] = &[
     "build",
     ".dart_tool",
     "linux/flutter/ephemeral",
     "windows/flutter/ephemeral",
 ];
-const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
-const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
-const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
+const PROJECT_ELIXIR_DIRS: &[&str] = &["_build"];
+const PROJECT_SWIFT_DIRS: &[&str] = &[".build", ".swiftpm"];
+const PROJECT_ZIG_DIRS: &[&str] = &["zig-cache"];
+const PROJECT_DIRENV_DIRS: &[&str] = &[".direnv"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -83,6 +85,7 @@ const PROJECT_PUB_NAME: &str = "Pub";
 const PROJECT_ELIXIR_NAME: &str = "Elixir";
 const PROJECT_SWIFT_NAME: &str = "Swift";
 const PROJECT_ZIG_NAME: &str = "Zig";
+const PROJECT_DIRENV_NAME: &str = "Direnv";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -103,6 +106,7 @@ pub enum ProjectType {
     Elixir,
     Swift,
     Zig,
+    Direnv,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +141,7 @@ impl Project {
             ProjectType::Swift => &PROJECT_SWIFT_DIRS,
             ProjectType::Gradle => &PROJECT_GRADLE_DIRS,
             ProjectType::Zig => &PROJECT_ZIG_DIRS,
+            ProjectType::Direnv => &PROJECT_DIRENV_DIRS,
         }
     }
 
@@ -243,6 +248,7 @@ impl Project {
             ProjectType::Swift => PROJECT_SWIFT_NAME,
             ProjectType::Gradle => PROJECT_GRADLE_NAME,
             ProjectType::Zig => PROJECT_ZIG_NAME,
+            ProjectType::Direnv => PROJECT_DIRENV_NAME,
         }
     }
 
@@ -347,6 +353,7 @@ impl Iterator for ProjectIter {
                     FILE_BUILD_GRADLE => Some(ProjectType::Gradle),
                     FILE_BUILD_GRADLE_KTS => Some(ProjectType::Gradle),
                     FILE_BUILD_ZIG => Some(ProjectType::Zig),
+                    FILE_DIRENV_ENVRC => Some(ProjectType::Direnv),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
