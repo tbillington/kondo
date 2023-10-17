@@ -8,7 +8,8 @@ use std::{
     sync::mpsc::{Receiver, Sender, SyncSender},
 };
 
-use clap::Parser;
+use clap::{Command, CommandFactory, Parser};
+use clap_complete::{generate, Generator, Shell};
 
 use kondo_lib::{
     dir_size, path_canonicalise, pretty_size, print_elapsed, scan, Project, ScanOptions,
@@ -48,6 +49,10 @@ struct Opt {
     /// Only directories with a file last modified n units of time ago will be looked at. Ex: 20d. Units are m: minutes, h: hours, d: days, w: weeks, M: months and y: years.
     #[arg(short, long, value_parser = parse_age_filter, default_value = "0d")]
     older: u64,
+
+    /// Generates completions for the specified shell
+    #[arg(long = "completions", value_enum)]
+    generator: Option<Shell>,
 
     /// If there is no input, defaults to yes
     #[arg(short, long)]
@@ -285,8 +290,19 @@ fn interactive_prompt(
     }
 }
 
+fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
+    generate(gen, cmd, cmd.get_name().to_string(), &mut stdout());
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let mut opt = Opt::parse();
+
+    if let Some(generator) = opt.generator {
+        let mut cmd = Opt::command();
+        eprintln!("Generating completion file for {generator:?}...");
+        print_completions(generator, &mut cmd);
+        return Ok(());
+    }
 
     if opt.quiet > 0 && !opt.all {
         eprintln!("Quiet mode can only be used with --all.");

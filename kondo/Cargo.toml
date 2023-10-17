@@ -20,6 +20,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
