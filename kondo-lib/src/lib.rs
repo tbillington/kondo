@@ -107,7 +107,7 @@ pub enum ProjectType {
 
 #[derive(Debug, Clone)]
 pub struct Project {
-    pub project_type: ProjectType,
+    pub project_type: Vec<ProjectType>,
     pub path: path::PathBuf,
 }
 
@@ -119,25 +119,31 @@ pub struct ProjectSize {
 }
 
 impl Project {
-    pub fn artifact_dirs(&self) -> &[&str] {
-        match self.project_type {
-            ProjectType::Cargo => &PROJECT_CARGO_DIRS,
-            ProjectType::Node => &PROJECT_NODE_DIRS,
-            ProjectType::Unity => &PROJECT_UNITY_DIRS,
-            ProjectType::Stack => &PROJECT_STACK_DIRS,
-            ProjectType::SBT => &PROJECT_SBT_DIRS,
-            ProjectType::Maven => &PROJECT_MVN_DIRS,
-            ProjectType::Unreal => &PROJECT_UNREAL_DIRS,
-            ProjectType::Jupyter => &PROJECT_JUPYTER_DIRS,
-            ProjectType::Python => &PROJECT_PYTHON_DIRS,
-            ProjectType::CMake => &PROJECT_CMAKE_DIRS,
-            ProjectType::Composer => &PROJECT_COMPOSER_DIRS,
-            ProjectType::Pub => &PROJECT_PUB_DIRS,
-            ProjectType::Elixir => &PROJECT_ELIXIR_DIRS,
-            ProjectType::Swift => &PROJECT_SWIFT_DIRS,
-            ProjectType::Gradle => &PROJECT_GRADLE_DIRS,
-            ProjectType::Zig => &PROJECT_ZIG_DIRS,
+    pub fn artifact_dirs(&self) -> Vec<&str> {
+        let mut dirs: Vec<&str> = Vec::new();
+        for t in self.project_type.iter() {
+            match t {
+                ProjectType::Cargo => {
+                    dirs.extend_from_slice(&PROJECT_CARGO_DIRS);
+                }
+                ProjectType::Node => dirs.extend_from_slice(&PROJECT_NODE_DIRS),
+                ProjectType::Unity => dirs.extend_from_slice(&PROJECT_UNITY_DIRS),
+                ProjectType::Stack => dirs.extend_from_slice(&PROJECT_STACK_DIRS),
+                ProjectType::SBT => dirs.extend_from_slice(&PROJECT_SBT_DIRS),
+                ProjectType::Maven => dirs.extend_from_slice(&PROJECT_MVN_DIRS),
+                ProjectType::Unreal => dirs.extend_from_slice(&PROJECT_UNREAL_DIRS),
+                ProjectType::Jupyter => dirs.extend_from_slice(&PROJECT_JUPYTER_DIRS),
+                ProjectType::Python => dirs.extend_from_slice(&PROJECT_PYTHON_DIRS),
+                ProjectType::CMake => dirs.extend_from_slice(&PROJECT_CMAKE_DIRS),
+                ProjectType::Composer => dirs.extend_from_slice(&PROJECT_COMPOSER_DIRS),
+                ProjectType::Pub => dirs.extend_from_slice(&PROJECT_PUB_DIRS),
+                ProjectType::Elixir => dirs.extend_from_slice(&PROJECT_ELIXIR_DIRS),
+                ProjectType::Swift => dirs.extend_from_slice(&PROJECT_SWIFT_DIRS),
+                ProjectType::Gradle => dirs.extend_from_slice(&PROJECT_GRADLE_DIRS),
+                ProjectType::Zig => dirs.extend_from_slice(&PROJECT_ZIG_DIRS),
+            }
         }
+        return dirs;
     }
 
     pub fn name(&self) -> Cow<str> {
@@ -225,25 +231,32 @@ impl Project {
         }
     }
 
-    pub fn type_name(&self) -> &'static str {
-        match self.project_type {
-            ProjectType::Cargo => PROJECT_CARGO_NAME,
-            ProjectType::Node => PROJECT_NODE_NAME,
-            ProjectType::Unity => PROJECT_UNITY_NAME,
-            ProjectType::Stack => PROJECT_STACK_NAME,
-            ProjectType::SBT => PROJECT_SBT_NAME,
-            ProjectType::Maven => PROJECT_MVN_NAME,
-            ProjectType::Unreal => PROJECT_UNREAL_NAME,
-            ProjectType::Jupyter => PROJECT_JUPYTER_NAME,
-            ProjectType::Python => PROJECT_PYTHON_NAME,
-            ProjectType::CMake => PROJECT_CMAKE_NAME,
-            ProjectType::Composer => PROJECT_COMPOSER_NAME,
-            ProjectType::Pub => PROJECT_PUB_NAME,
-            ProjectType::Elixir => PROJECT_ELIXIR_NAME,
-            ProjectType::Swift => PROJECT_SWIFT_NAME,
-            ProjectType::Gradle => PROJECT_GRADLE_NAME,
-            ProjectType::Zig => PROJECT_ZIG_NAME,
+    pub fn type_name(&self) -> String {
+        let mut project_type: Vec<&str> = Vec::new();
+
+        for t in self.project_type.iter() {
+            match t {
+                ProjectType::Cargo => {
+                    project_type.push(PROJECT_CARGO_NAME);
+                }
+                ProjectType::Node => project_type.push(PROJECT_NODE_NAME),
+                ProjectType::Unity => project_type.push(PROJECT_UNITY_NAME),
+                ProjectType::Stack => project_type.push(PROJECT_STACK_NAME),
+                ProjectType::SBT => project_type.push(PROJECT_SBT_NAME),
+                ProjectType::Maven => project_type.push(PROJECT_MVN_NAME),
+                ProjectType::Unreal => project_type.push(PROJECT_UNREAL_NAME),
+                ProjectType::Jupyter => project_type.push(PROJECT_JUPYTER_NAME),
+                ProjectType::Python => project_type.push(PROJECT_PYTHON_NAME),
+                ProjectType::CMake => project_type.push(PROJECT_CMAKE_NAME),
+                ProjectType::Composer => project_type.push(PROJECT_COMPOSER_NAME),
+                ProjectType::Pub => project_type.push(PROJECT_PUB_NAME),
+                ProjectType::Elixir => project_type.push(PROJECT_ELIXIR_NAME),
+                ProjectType::Swift => project_type.push(PROJECT_SWIFT_NAME),
+                ProjectType::Gradle => project_type.push(PROJECT_GRADLE_NAME),
+                ProjectType::Zig => project_type.push(PROJECT_ZIG_NAME),
+            }
         }
+        return project_type.join(", ");
     }
 
     /// Deletes the project's artifact directories and their contents
@@ -359,9 +372,10 @@ impl Iterator for ProjectIter {
                     _ => None,
                 };
                 if let Some(project_type) = p_type {
-                    self.it.skip_current_dir();
+                    // self.it.skip_current_dir();
+
                     return Some(Ok(Project {
-                        project_type,
+                        project_type: vec![project_type],
                         path: entry.path().to_path_buf(),
                     }));
                 }
@@ -446,7 +460,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
             };
             if let Some(project_type) = p_type {
                 return Some(Project {
-                    project_type,
+                    project_type: vec![project_type],
                     path: project_path.into(),
                 });
             }
