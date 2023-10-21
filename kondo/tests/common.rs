@@ -1,5 +1,8 @@
 use std::{env, path::PathBuf};
 
+// Enables us to get a handle on the recently build kondo binary.
+// When running tests, our executable is in the target directory.
+// This returns the PathBuf to the kondo binary in the same target directory.
 pub fn bin() -> PathBuf {
     let current_exe = env::current_exe().unwrap();
     let parent = current_exe.parent().unwrap();
@@ -13,6 +16,8 @@ pub fn bin() -> PathBuf {
     path
 }
 
+// Enables us to get a temporary directory that contains a copy of test data
+// specified by `scenario`.
 pub fn with_temp_dir_from<F>(scenario: String, f: F)
 where
     F: FnOnce(PathBuf),
@@ -22,6 +27,8 @@ where
     tmp_dir.close().unwrap();
 }
 
+// Given `scenario` in the `test_data` directory, this returns a temporary
+// directory that contains a copy of the scenario's data.
 pub fn get_copy_of_test_data_as_temp_dir(scenario: String) -> tempfile::TempDir {
     extern crate fs_extra;
     let options = fs_extra::dir::CopyOptions::new();

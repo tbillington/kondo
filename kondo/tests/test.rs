@@ -34,7 +34,9 @@ fn test_cli_run_kondo_all_in_python_project() {
         // run kondo --all in the temp dir
         let mut cmd = Command::new(bin);
 
-        let cmd_w_args = cmd.arg(tmpdir.join(scenario.clone())).arg("--all");
+        let cmd_w_args = cmd
+            .arg(tmpdir.join(scenario.clone())) // note the path tmp/scenario-name
+            .arg("--all");
         print!("cmd_w_args: {:?}", cmd_w_args);
         let output = cmd_w_args.output().unwrap();
 
@@ -53,7 +55,7 @@ fn test_cli_run_kondo_all_in_python_project() {
     });
 }
 
-#[ignore = "failing unexpectedly. should work, but doesn't see the project unless we specify the right top dir as in the test above"]
+#[ignore = "failing unexpectedly. should work, but doesn't see the project unless we specify the right top dir as in the test above. I'd expect kondo to recurse into the scenario directory. "]
 #[test]
 fn test_cli_run_kondo_all_above_project_fails() {
     let scenario = "scenario_a".to_string();
@@ -75,10 +77,10 @@ fn test_cli_run_kondo_all_above_project_fails() {
         // run kondo --all in the temp dir
         let mut cmd = Command::new(bin);
 
-        // NOTE on failure the tmpdir path... so we're at the top level
-        // tmpdr: "/tmp/.tmp0YKIZW"
-        // stdout: Projects cleaned: 0, Bytes deleted: 0.0B
-        let cmd_w_args = cmd.arg(tmpdir.clone()).arg("--all");
+        let cmd_w_args = cmd
+            .arg(tmpdir.clone()) // here note the path, just tmpdir
+            .arg("--all");
+
         print!("cmd_w_args: {:?}", cmd_w_args);
         let output = cmd_w_args.output().unwrap();
 
