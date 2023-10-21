@@ -27,6 +27,15 @@ where
     tmp_dir.close().unwrap();
 }
 
+pub fn with_cache_at<F>(cache: PathBuf, f: F)
+where
+    F: FnOnce(PathBuf),
+{
+    assert!(cache.exists(), "cache must exist before running kondo");
+    f(cache.clone());
+    assert!(!cache.exists(), "cache must be deleted after running kondo");
+}
+
 // Given `scenario` in the `test_data` directory, this returns a temporary
 // directory that contains a copy of the scenario's data.
 pub fn get_copy_of_test_data_as_temp_dir(scenario: String) -> tempfile::TempDir {

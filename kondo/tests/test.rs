@@ -2,6 +2,8 @@ mod common;
 use common::with_temp_dir_from;
 use std::{fs, process::Command};
 
+use crate::common::with_cache_at;
+
 #[test]
 fn test_version() {
     let bin = common::bin();
@@ -21,36 +23,26 @@ fn test_cli_run_kondo_all_in_python_project() {
         let bin = common::bin();
         println!("tmpdr: {:?}", tmpdir);
 
-        assert!(
+        with_cache_at(
             tmpdir
+                .clone()
                 .join(scenario.clone())
                 .join("python-project-a")
                 .join("__pycache__")
-                .join("1")
-                .exists(),
-            "cache ought to exist before running kondo"
-        );
+                .join("1"),
+            |cache| {
+                // run kondo --all in the temp dir
+                let mut cmd = Command::new(bin);
 
-        // run kondo --all in the temp dir
-        let mut cmd = Command::new(bin);
+                let cmd_w_args = cmd
+                    .arg(tmpdir.join(scenario.clone())) // note the path tmp/scenario-name
+                    .arg("--all");
+                print!("cmd_w_args: {:?}", cmd_w_args);
+                let output = cmd_w_args.output().unwrap();
 
-        let cmd_w_args = cmd
-            .arg(tmpdir.join(scenario.clone())) // note the path tmp/scenario-name
-            .arg("--all");
-        print!("cmd_w_args: {:?}", cmd_w_args);
-        let output = cmd_w_args.output().unwrap();
-
-        assert!(output.status.success(), "failed to run kondo");
-        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-
-        assert!(
-            !tmpdir
-                .join(scenario.clone())
-                .join("python-project-a")
-                .join("__pycache__")
-                .join("1")
-                .exists(),
-            "cache ought to be deleted after running kondo"
+                assert!(output.status.success(), "failed to run kondo");
+                println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+            },
         );
     });
 }
@@ -63,40 +55,27 @@ fn test_cli_run_kondo_all_above_project_fails() {
         let bin = common::bin();
         println!("tmpdr: {:?}", tmpdir.clone());
 
-        assert!(
+        with_cache_at(
             tmpdir
                 .clone()
                 .join(scenario.clone())
                 .join("python-project-a")
                 .join("__pycache__")
-                .join("1")
-                .exists(),
-            "cache must exist before running kondo"
-        );
+                .join("1"),
+            |cache| {
+                // run kondo --all in the temp dir
+                let mut cmd = Command::new(bin);
 
-        // run kondo --all in the temp dir
-        let mut cmd = Command::new(bin);
+                let cmd_w_args = cmd
+                    .arg(tmpdir.clone()) // here note the path, just tmpdir
+                    .arg("--all");
 
-        let cmd_w_args = cmd
-            .arg(tmpdir.clone()) // here note the path, just tmpdir
-            .arg("--all");
+                print!("cmd_w_args: {:?}", cmd_w_args);
+                let output = cmd_w_args.output().unwrap();
 
-        print!("cmd_w_args: {:?}", cmd_w_args);
-        let output = cmd_w_args.output().unwrap();
-
-        assert!(output.status.success(), "failed to run kondo");
-        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-
-        // failing here... should have been cleaned..
-        assert!(
-            !tmpdir
-                .clone()
-                .join(scenario.clone())
-                .join("python-project-a")
-                .join("__pycache__")
-                .join("1")
-                .exists(),
-            "cache ought to be deleted after running kondo"
+                assert!(output.status.success(), "failed to run kondo");
+                println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+            },
         );
     });
 }
