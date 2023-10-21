@@ -173,3 +173,25 @@ fn play_a() {
         assert!(path.join(scenario.clone()).exists(), "dir ought to exist");
     });
 }
+
+#[test]
+#[ignore = "bug: --ignored-dirs that don't exist cause a failure"]
+fn non_extant_ignore_dirs_work() {
+    let scenario = "scenario_nested_a".to_string();
+    with_temp_dir_from(scenario.clone(), |tmpdir| {
+        let bin = common::bin();
+
+        // run kondo
+        let mut cmd = Command::new(bin);
+        let cmd_w_args = cmd
+            .arg(tmpdir.join(scenario.clone()))
+            .arg(tmpdir.clone())
+            .arg("--ignored-dirs=doesnotexist")
+            .arg("--all");
+        let output = cmd_w_args.output().unwrap();
+        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+        assert!(output.status.success(), "failed to run kondo");
+    });
+}

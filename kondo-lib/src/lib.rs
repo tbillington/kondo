@@ -484,6 +484,8 @@ pub fn path_canonicalise(
 
 #[cfg(test)]
 mod tests {
+    use std::fs::create_dir_all;
+
     use super::print_elapsed;
 
     #[test]
@@ -523,5 +525,46 @@ mod tests {
         assert_eq!(print_elapsed(2419200 * 12), "12 months ago");
         assert_eq!(print_elapsed(2419200 * 25), "25 months ago");
         assert_eq!(print_elapsed(2419200 * 48), "4 years ago");
+    }
+
+    #[test]
+    fn test_path_canonicalise_works_on_extant_tail() {
+        let str_tail = "idoexist".to_string();
+
+        let base = tempfile::tempdir().unwrap().into_path();
+        let expected = base.join(str_tail.clone());
+        let tail = std::path::PathBuf::from(str_tail.clone());
+
+        // must make sure the tail exists in base dir, or we'll error that it doesn't exist
+        create_dir_all(base.join(std::path::PathBuf::from(str_tail))).unwrap();
+
+        let actual = super::path_canonicalise(&base, tail).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn path_canonicalise_fails_on_nonextant_tail() {
+        let str_tail = "idontexist".to_string();
+
+        let base = tempfile::tempdir().unwrap().into_path();
+        let tail = std::path::PathBuf::from(str_tail.clone());
+
+        // here tail has not been created
+
+        super::path_canonicalise(&base, tail).unwrap();
+    }
+    #[test]
+    fn path_canonicalise_works_on_absolute_dirs_that_dont_exist() {
+        let str_tail = "/idontexist".to_string();
+
+        let base = tempfile::tempdir().unwrap().into_path();
+        let expected = base.join(str_tail.clone());
+        let tail = std::path::PathBuf::from(str_tail.clone());
+
+        assert!(!tail.exists());
+
+        let actual = super::path_canonicalise(&base, tail).unwrap();
+        assert_eq!(actual, expected);
     }
 }
