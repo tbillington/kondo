@@ -34,9 +34,7 @@ fn test_cli_run_kondo_all_in_python_project() {
         // run kondo --all in the temp dir
         let mut cmd = Command::new(bin);
 
-        let cmd_w_args = cmd
-            .arg(tmpdir.join(scenario.clone()))
-            .arg("--all");
+        let cmd_w_args = cmd.arg(tmpdir.join(scenario.clone())).arg("--all");
         print!("cmd_w_args: {:?}", cmd_w_args);
         let output = cmd_w_args.output().unwrap();
 
@@ -123,9 +121,7 @@ fn test_cli_run_kondo_scenario_nested_a() {
         // run kondo --all in the temp dir
         let mut cmd = Command::new(bin);
 
-        let cmd_w_args = cmd
-            .arg(tmpdir.join(scenario.clone()))
-            .arg("--all");
+        let cmd_w_args = cmd.arg(tmpdir.join(scenario.clone())).arg("--all");
         let output = cmd_w_args.output().unwrap();
 
         assert!(output.status.success(), "failed to run kondo");
