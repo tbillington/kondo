@@ -32,6 +32,7 @@ Excellent if
 - <a href="https://swift.org/">Swift</a>
 - <a href="https://gradle.com/">Gradle</a>
 - <a href="https://ziglang.org/">Zig</a>
+- <a href="https://godotengine.org/">Godot 4.x</a>
 </p>
 <p align="center">
 Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!

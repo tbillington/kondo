@@ -22,6 +22,7 @@ const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 const FILE_ELIXIR_MIX: &str = "mix.exs";
 const FILE_SWIFT_PACKAGE: &str = "Package.swift";
 const FILE_BUILD_ZIG: &str = "build.zig";
+const FILE_GODOT_4_PROJECT: &str = "project.godot";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
@@ -66,6 +67,7 @@ const PROJECT_PUB_DIRS: [&str; 4] = [
 const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
 const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
 const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
+const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -83,6 +85,7 @@ const PROJECT_PUB_NAME: &str = "Pub";
 const PROJECT_ELIXIR_NAME: &str = "Elixir";
 const PROJECT_SWIFT_NAME: &str = "Swift";
 const PROJECT_ZIG_NAME: &str = "Zig";
+const PROJECT_GODOT_4_NAME: &str = "Godot 4.x";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -103,6 +106,7 @@ pub enum ProjectType {
     Elixir,
     Swift,
     Zig,
+    Godot4,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +141,7 @@ impl Project {
             ProjectType::Swift => &PROJECT_SWIFT_DIRS,
             ProjectType::Gradle => &PROJECT_GRADLE_DIRS,
             ProjectType::Zig => &PROJECT_ZIG_DIRS,
+            ProjectType::Godot4 => &PROJECT_GODOT_4_DIRS,
         }
     }
 
@@ -243,6 +248,7 @@ impl Project {
             ProjectType::Swift => PROJECT_SWIFT_NAME,
             ProjectType::Gradle => PROJECT_GRADLE_NAME,
             ProjectType::Zig => PROJECT_ZIG_NAME,
+            ProjectType::Godot4 => PROJECT_GODOT_4_NAME,
         }
     }
 
@@ -347,6 +353,7 @@ impl Iterator for ProjectIter {
                     FILE_BUILD_GRADLE => Some(ProjectType::Gradle),
                     FILE_BUILD_GRADLE_KTS => Some(ProjectType::Gradle),
                     FILE_BUILD_ZIG => Some(ProjectType::Zig),
+                    FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -442,6 +449,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                 FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                 FILE_BUILD_ZIG => Some(ProjectType::Zig),
+                FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
                 _ => None,
             };
             if let Some(project_type) = p_type {
