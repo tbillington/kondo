@@ -363,7 +363,10 @@ impl Iterator for ProjectIter {
                     file_name if file_name.ends_with(FILE_PYTHON_SUFFIX) => {
                         Some(ProjectType::Python)
                     }
-                    file_name if file_name.ends_with(FILE_CSPROJ_SUFFIX) || file_name.ends_with(FILE_FSPROJ_SUFFIX) => {
+                    file_name
+                        if file_name.ends_with(FILE_CSPROJ_SUFFIX)
+                            || file_name.ends_with(FILE_FSPROJ_SUFFIX) =>
+                    {
                         Some(ProjectType::Dotnet)
                     }
                     _ => None,
