@@ -49,11 +49,12 @@ const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "Intermediate",
 ];
 const PROJECT_JUPYTER_DIRS: [&str; 1] = [".ipynb_checkpoints"];
-const PROJECT_PYTHON_DIRS: [&str; 7] = [
+const PROJECT_PYTHON_DIRS: [&str; 8] = [
     ".mypy_cache",
     ".nox",
     ".pytest_cache",
     ".ruff_cache",
+    ".tox",
     ".venv",
     "__pycache__",
     "__pypackages__",
