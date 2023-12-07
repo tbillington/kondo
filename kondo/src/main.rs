@@ -20,7 +20,7 @@ use kondo_lib::{
 #[command(name = "kondo")]
 /// Kondo recursively cleans project directories.
 ///
-/// Supported project types: Cargo, Node, Unity, SBT, Haskell Stack, Maven, Unreal Engine, Jupyter Notebook, Python, Jupyter Notebooks,CMake, Composer, Pub, Elixir, Swift, and Gradle projects.
+/// Supported project types: Cargo, Node, Unity, SBT, Haskell Stack, Maven, Unreal Engine, Jupyter Notebook, Python, Jupyter Notebooks, CMake, Composer, Pub, Elixir, Swift, Gradle, and .NET projects.
 struct Opt {
     /// The directories to examine. Current directory will be used if DIRS is omitted.
     #[arg(name = "DIRS")]
