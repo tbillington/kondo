@@ -1,9 +1,9 @@
+mod main_test;
+
 use std::{
     env::current_dir,
     error::Error,
-    fmt,
     io::{stdin, stdout, Write},
-    num::ParseIntError,
     path::PathBuf,
     sync::mpsc::{Receiver, Sender, SyncSender},
 };
@@ -14,6 +14,11 @@ use clap_complete::{generate, Generator, Shell};
 use kondo_lib::{
     dir_size, path_canonicalise, pretty_size, print_elapsed, scan, Project, ScanOptions,
 };
+
+use kondo::parse_age_filter;
+
+type DiscoverData = (Project, Vec<(String, u64)>, u64, String);
+type DeleteData = (Project, u64);
 
 // Below needs updating every time a new project type is added!
 #[derive(Parser, Debug)]
@@ -59,93 +64,81 @@ struct Opt {
     default: bool,
 }
 
-fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
-    let cd = current_dir()?;
-    if dirs.is_empty() {
-        return Ok(vec![cd]);
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut opt = Opt::parse();
+
+    if let Some(generator) = opt.generator {
+        let mut cmd = Opt::command();
+        eprintln!("Generating completion file for {generator:?}...");
+        print_completions(generator, &mut cmd);
+        return Ok(());
     }
 
-    let dirs = dirs
-        .into_iter()
-        .filter_map(|path| {
-            let exists = path.try_exists().unwrap_or(false);
-            if !exists {
-                eprintln!("error: directory {} does not exist", path.to_string_lossy());
-                return None;
-            }
-
-            if let Ok(metadata) = path.metadata() {
-                if metadata.is_file() {
-                    eprintln!(
-                        "error: file supplied but directory expected: {}",
-                        path.to_string_lossy()
-                    );
-                    return None;
-                }
-            }
-
-            path_canonicalise(&cd, path).ok()
-        })
-        .collect();
-
-    Ok(dirs)
-}
-
-#[derive(Debug)]
-pub enum ParseAgeFilterError {
-    ParseIntError(ParseIntError),
-    InvalidUnit,
-}
-
-impl fmt::Display for ParseAgeFilterError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ParseAgeFilterError::ParseIntError(e) => e.fmt(f),
-            ParseAgeFilterError::InvalidUnit => {
-                "invalid age unit, must be one of m, h, d, w, M, y".fmt(f)
-            }
-        }
+    if opt.quiet > 0 && !opt.all {
+        eprintln!("Quiet mode can only be used with --all.");
+        std::process::exit(1);
     }
-}
 
-impl From<ParseIntError> for ParseAgeFilterError {
-    fn from(e: ParseIntError) -> Self {
-        Self::ParseIntError(e)
-    }
-}
+    let dirs = prepare_directories(opt.dirs)?;
 
-impl Error for ParseAgeFilterError {}
-
-pub fn parse_age_filter(age_filter: &str) -> Result<u64, ParseAgeFilterError> {
-    const MINUTE: u64 = 60;
-    const HOUR: u64 = MINUTE * 60;
-    const DAY: u64 = HOUR * 24;
-    const WEEK: u64 = DAY * 7;
-    const MONTH: u64 = WEEK * 4;
-    const YEAR: u64 = DAY * 365;
-
-    let (digit_end, unit) = age_filter
-        .char_indices()
-        .last()
-        .ok_or(ParseAgeFilterError::InvalidUnit)?;
-
-    let multiplier = match unit {
-        'm' => MINUTE,
-        'h' => HOUR,
-        'd' => DAY,
-        'w' => WEEK,
-        'M' => MONTH,
-        'y' => YEAR,
-        _ => return Err(ParseAgeFilterError::InvalidUnit),
+    let scan_options: ScanOptions = ScanOptions {
+        follow_symlinks: opt.follow_symlinks,
+        same_file_system: opt.same_filesystem,
     };
 
-    let count = age_filter[..digit_end].parse::<u64>()?;
-    let seconds = count * multiplier;
-    Ok(seconds)
-}
+    let (proj_discover_send, proj_discover_recv) = std::sync::mpsc::sync_channel::<DiscoverData>(5);
+    let (proj_delete_send, proj_delete_recv) = std::sync::mpsc::channel::<(Project, u64)>();
 
-type DiscoverData = (Project, Vec<(String, u64)>, u64, String);
-type DeleteData = (Project, u64);
+    let project_min_age = opt.older;
+    let ignored_dirs = {
+        let cd = current_dir()?;
+
+        std::mem::take(&mut opt.ignored_dirs)
+            .into_iter()
+            .map(|dir| path_canonicalise(&cd, dir))
+            .collect::<Result<Vec<_>, _>>()?
+    };
+
+    std::thread::spawn(move || {
+        discover(
+            dirs,
+            &scan_options,
+            project_min_age,
+            proj_discover_send,
+            &ignored_dirs,
+        );
+    });
+
+    let delete_handle = std::thread::spawn(move || process_deletes(proj_delete_recv));
+
+    interactive_prompt(
+        proj_discover_recv,
+        proj_delete_send,
+        opt.quiet,
+        opt.all,
+        opt.default,
+    );
+
+    let delete_results = match delete_handle.join() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error in delete thread, {e:?}");
+            std::process::exit(1);
+        }
+    };
+
+    if opt.quiet < 2 {
+        let projects_cleaned = delete_results.len();
+        let bytes_deleted = delete_results.iter().map(|(_, bytes)| bytes).sum();
+        println!(
+            "Projects cleaned: {}, Bytes deleted: {}",
+            projects_cleaned,
+            pretty_size(bytes_deleted)
+        );
+    }
+
+    Ok(())
+}
 
 fn discover(
     dirs: Vec<PathBuf>,
@@ -294,78 +287,47 @@ fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
     generate(gen, cmd, cmd.get_name().to_string(), &mut stdout());
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let mut opt = Opt::parse();
-
-    if let Some(generator) = opt.generator {
-        let mut cmd = Opt::command();
-        eprintln!("Generating completion file for {generator:?}...");
-        print_completions(generator, &mut cmd);
-        return Ok(());
+fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    let cd = current_dir()?;
+    if dirs.is_empty() {
+        return Ok(vec![cd]);
     }
 
-    if opt.quiet > 0 && !opt.all {
-        eprintln!("Quiet mode can only be used with --all.");
-        std::process::exit(1);
+    let dirs = dirs
+        .into_iter()
+        .filter_map(|path| {
+            let exists = path.try_exists().unwrap_or(false);
+            if !exists {
+                eprintln!("error: directory {} does not exist", path.to_string_lossy());
+                return None;
+            }
+
+            if let Ok(metadata) = path.metadata() {
+                if metadata.is_file() {
+                    eprintln!(
+                        "error: file supplied but directory expected: {}",
+                        path.to_string_lossy()
+                    );
+                    return None;
+                }
+            }
+
+            path_canonicalise(&cd, path).ok()
+        })
+        .collect();
+
+    Ok(dirs)
+}
+
+#[cfg(test)]
+mod test {
+
+    // parse age filter is marked public. Can we use it?
+    #[test]
+    fn parse_age_filter_is_public() {
+        let res = kondo::parse_age_filter("10m");
+
+        let age_filter = res.unwrap();
+        assert_eq!(age_filter, 600);
     }
-
-    let dirs = prepare_directories(opt.dirs)?;
-
-    let scan_options: ScanOptions = ScanOptions {
-        follow_symlinks: opt.follow_symlinks,
-        same_file_system: opt.same_filesystem,
-    };
-
-    let (proj_discover_send, proj_discover_recv) = std::sync::mpsc::sync_channel::<DiscoverData>(5);
-    let (proj_delete_send, proj_delete_recv) = std::sync::mpsc::channel::<(Project, u64)>();
-
-    let project_min_age = opt.older;
-    let ignored_dirs = {
-        let cd = current_dir()?;
-
-        std::mem::take(&mut opt.ignored_dirs)
-            .into_iter()
-            .map(|dir| path_canonicalise(&cd, dir))
-            .collect::<Result<Vec<_>, _>>()?
-    };
-
-    std::thread::spawn(move || {
-        discover(
-            dirs,
-            &scan_options,
-            project_min_age,
-            proj_discover_send,
-            &ignored_dirs,
-        );
-    });
-
-    let delete_handle = std::thread::spawn(move || process_deletes(proj_delete_recv));
-
-    interactive_prompt(
-        proj_discover_recv,
-        proj_delete_send,
-        opt.quiet,
-        opt.all,
-        opt.default,
-    );
-
-    let delete_results = match delete_handle.join() {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("error in delete thread, {e:?}");
-            std::process::exit(1);
-        }
-    };
-
-    if opt.quiet < 2 {
-        let projects_cleaned = delete_results.len();
-        let bytes_deleted = delete_results.iter().map(|(_, bytes)| bytes).sum();
-        println!(
-            "Projects cleaned: {}, Bytes deleted: {}",
-            projects_cleaned,
-            pretty_size(bytes_deleted)
-        );
-    }
-
-    Ok(())
 }
