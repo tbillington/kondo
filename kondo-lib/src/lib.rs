@@ -22,6 +22,8 @@ const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 const FILE_ELIXIR_MIX: &str = "mix.exs";
 const FILE_SWIFT_PACKAGE: &str = "Package.swift";
 const FILE_BUILD_ZIG: &str = "build.zig";
+const FILE_CSPROJ_SUFFIX: &str = ".csproj";
+const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
 
 const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
@@ -66,6 +68,7 @@ const PROJECT_PUB_DIRS: [&str; 4] = [
 const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
 const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
 const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
+const PROJECT_DOTNET_DIRS: [&str; 2] = ["bin", "obj"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -83,6 +86,7 @@ const PROJECT_PUB_NAME: &str = "Pub";
 const PROJECT_ELIXIR_NAME: &str = "Elixir";
 const PROJECT_SWIFT_NAME: &str = "Swift";
 const PROJECT_ZIG_NAME: &str = "Zig";
+const PROJECT_DOTNET_NAME: &str = ".NET";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -103,6 +107,7 @@ pub enum ProjectType {
     Elixir,
     Swift,
     Zig,
+    Dotnet,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +142,7 @@ impl Project {
             ProjectType::Swift => &PROJECT_SWIFT_DIRS,
             ProjectType::Gradle => &PROJECT_GRADLE_DIRS,
             ProjectType::Zig => &PROJECT_ZIG_DIRS,
+            ProjectType::Dotnet => &PROJECT_DOTNET_DIRS,
         }
     }
 
@@ -243,6 +249,7 @@ impl Project {
             ProjectType::Swift => PROJECT_SWIFT_NAME,
             ProjectType::Gradle => PROJECT_GRADLE_NAME,
             ProjectType::Zig => PROJECT_ZIG_NAME,
+            ProjectType::Dotnet => PROJECT_DOTNET_NAME,
         }
     }
 
@@ -355,6 +362,12 @@ impl Iterator for ProjectIter {
                     }
                     file_name if file_name.ends_with(FILE_PYTHON_SUFFIX) => {
                         Some(ProjectType::Python)
+                    }
+                    file_name
+                        if file_name.ends_with(FILE_CSPROJ_SUFFIX)
+                            || file_name.ends_with(FILE_FSPROJ_SUFFIX) =>
+                    {
+                        Some(ProjectType::Dotnet)
                     }
                     _ => None,
                 };
