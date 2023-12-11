@@ -1,0 +1,11 @@
+[package]
+name = "kondo-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossbeam-channel = "0.5.8"
+crossbeam-deque = "0.8.3"
+crossbeam-utils = "0.8.16"
+enum_dispatch = "0.3.12"
+path-trie = { workspace = true }
