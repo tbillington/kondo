@@ -1,7 +1,8 @@
 use std::{
     borrow::Cow,
     error::{self, Error},
-    fs, path,
+    fs,
+    path::{self, Path},
     time::SystemTime,
 };
 
@@ -375,7 +376,13 @@ impl Iterator for ProjectIter {
                         if file_name.ends_with(FILE_CSPROJ_SUFFIX)
                             || file_name.ends_with(FILE_FSPROJ_SUFFIX) =>
                     {
-                        Some(ProjectType::Dotnet)
+                        if dir_contains_file(entry.path(), FILE_GODOT_4_PROJECT) {
+                            Some(ProjectType::Godot4)
+                        } else if dir_contains_file(entry.path(), FILE_ASSEMBLY_CSHARP) {
+                            Some(ProjectType::Unity)
+                        } else {
+                            Some(ProjectType::Dotnet)
+                        }
                     }
                     _ => None,
                 };
@@ -389,6 +396,16 @@ impl Iterator for ProjectIter {
             }
         }
     }
+}
+
+fn dir_contains_file(path: &Path, file: &str) -> bool {
+    path.read_dir()
+        .map(|rd| {
+            rd.filter_map(|rd| rd.ok()).any(|de| {
+                de.file_type().is_ok_and(|t| t.is_file()) && de.file_name().to_str() == Some(file)
+            })
+        })
+        .unwrap_or(false)
 }
 
 #[derive(Clone, Debug)]
