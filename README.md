@@ -11,35 +11,34 @@ Excellent if
 <br />
 
 <p align="center">
-    <strong>16 Supported Project Types</strong>
+    <strong>20+ Supported Project Types</strong>
+</p>
+
+<p align="center">
+<a href="https://doc.rust-lang.org/cargo/">Cargo</a> (Rust),
+<a href="https://cmake.org">CMake</a> (C, C++),
+<a href="https://getcomposer.org/">Composer</a> (PHP),
+<a href="https://elixir-lang.org/">Elixir</a>,
+<a href="https://godotengine.org/">Godot 4.x</a> (C#, GDScript)
 </p>
 <p align="center">
-<a href="https://doc.rust-lang.org/cargo/">Cargo</a>
-- <a href="https://nodejs.org/">Node</a>
-- <a href="https://unity.com/">Unity</a>
-- <a href="https://www.scala-sbt.org/">Scala SBT</a>
-- <a href="https://docs.haskellstack.org/">Haskell Stack</a>
-- <a href="https://maven.apache.org/">Maven</a>
-- <a href="https://www.unrealengine.com/">Unreal Engine</a>
-- <a href="https://www.python.org/">Python</a>
+<a href="https://gradle.com/">Gradle</a> (Java)
+<a href="https://jupyter.org/">Jupyter Notebook</a> (Python),
+<a href="https://maven.apache.org/">Maven</a> (Java),
+<a href="https://nodejs.org/">Node</a> (JavaScript)
 </p>
 <p align="center">
-<a href="https://jupyter.org/">Jupyter Notebook</a>
-- <a href="https://cmake.org">CMake</a>
-- <a href="https://getcomposer.org/">Composer</a>
-- <a href="https://dart.dev/">Pub</a>
-- <a href="https://elixir-lang.org/">Elixir</a>
-- <a href="https://swift.org/">Swift</a>
-- <a href="https://gradle.com/">Gradle</a>
-- <a href="https://ziglang.org/">Zig</a>
-- <a href="https://godotengine.org/">Godot 4.x</a>
-- <a href="https://dotnet.microsoft.com/">.NET</a>
+<a href="https://dart.dev/">Pub</a> (Dart),
+<a href="https://www.python.org/">Python</a>
+<a href="https://www.scala-sbt.org/">SBT</a> (Scala),
+<a href="https://docs.haskellstack.org/">Stack</a> (Haskell),
+<a href="https://swift.org/">Swift</a>
 </p>
 <p align="center">
-Pull requests are welcome, it's <a href="https://github.com/tbillington/kondo/pull/76/files">easy to extend</a>!
-</p>
-<p align="center">
-Current <a href="https://github.com/tbillington/kondo/blob/a7af95484d364bbb12eb3b40b0d860424dd1b714/kondo-lib/src/lib.rs#L22-L54">deleted directories config</a>.
+<a href="https://unity.com/">Unity</a> (C#),
+<a href="https://www.unrealengine.com/">Unreal Engine</a> (C++),
+<a href="https://ziglang.org/">Zig</a>,
+<a href="https://dotnet.microsoft.com/">.NET</a> (C#, F#)
 </p>
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
