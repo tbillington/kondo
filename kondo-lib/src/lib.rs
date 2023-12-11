@@ -23,8 +23,10 @@ const FILE_ELIXIR_MIX: &str = "mix.exs";
 const FILE_SWIFT_PACKAGE: &str = "Package.swift";
 const FILE_BUILD_ZIG: &str = "build.zig";
 const FILE_GODOT_4_PROJECT: &str = "project.godot";
+const FILE_CSPROJ_SUFFIX: &str = ".csproj";
+const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
 
-const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
+const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
 const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Library",
@@ -39,7 +41,7 @@ const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
 const PROJECT_GRADLE_DIRS: [&str; 2] = ["build", ".gradle"];
-const PROJECT_CMAKE_DIRS: [&str; 1] = ["build"];
+const PROJECT_CMAKE_DIRS: [&str; 3] = ["build", "cmake-build-debug", "cmake-build-release"];
 const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "Binaries",
     "Build",
@@ -48,11 +50,12 @@ const PROJECT_UNREAL_DIRS: [&str; 5] = [
     "Intermediate",
 ];
 const PROJECT_JUPYTER_DIRS: [&str; 1] = [".ipynb_checkpoints"];
-const PROJECT_PYTHON_DIRS: [&str; 7] = [
+const PROJECT_PYTHON_DIRS: [&str; 8] = [
     ".mypy_cache",
     ".nox",
     ".pytest_cache",
     ".ruff_cache",
+    ".tox",
     ".venv",
     "__pycache__",
     "__pypackages__",
@@ -68,6 +71,7 @@ const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
 const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
 const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
 const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
+const PROJECT_DOTNET_DIRS: [&str; 2] = ["bin", "obj"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -86,6 +90,7 @@ const PROJECT_ELIXIR_NAME: &str = "Elixir";
 const PROJECT_SWIFT_NAME: &str = "Swift";
 const PROJECT_ZIG_NAME: &str = "Zig";
 const PROJECT_GODOT_4_NAME: &str = "Godot 4.x";
+const PROJECT_DOTNET_NAME: &str = ".NET";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -107,6 +112,7 @@ pub enum ProjectType {
     Swift,
     Zig,
     Godot4,
+    Dotnet,
 }
 
 #[derive(Debug, Clone)]
@@ -142,6 +148,7 @@ impl Project {
             ProjectType::Gradle => &PROJECT_GRADLE_DIRS,
             ProjectType::Zig => &PROJECT_ZIG_DIRS,
             ProjectType::Godot4 => &PROJECT_GODOT_4_DIRS,
+            ProjectType::Dotnet => &PROJECT_DOTNET_DIRS,
         }
     }
 
@@ -249,6 +256,7 @@ impl Project {
             ProjectType::Gradle => PROJECT_GRADLE_NAME,
             ProjectType::Zig => PROJECT_ZIG_NAME,
             ProjectType::Godot4 => PROJECT_GODOT_4_NAME,
+            ProjectType::Dotnet => PROJECT_DOTNET_NAME,
         }
     }
 
@@ -362,6 +370,12 @@ impl Iterator for ProjectIter {
                     }
                     file_name if file_name.ends_with(FILE_PYTHON_SUFFIX) => {
                         Some(ProjectType::Python)
+                    }
+                    file_name
+                        if file_name.ends_with(FILE_CSPROJ_SUFFIX)
+                            || file_name.ends_with(FILE_FSPROJ_SUFFIX) =>
+                    {
+                        Some(ProjectType::Dotnet)
                     }
                     _ => None,
                 };
