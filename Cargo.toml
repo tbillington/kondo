@@ -4,5 +4,5 @@ exclude = ["kondo-ui"]
 resolver = "2"
 
 [profile.release]
-lto = true
+lto = "thin"
 codegen-units = 1
