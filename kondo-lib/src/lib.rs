@@ -25,7 +25,7 @@ const FILE_BUILD_ZIG: &str = "build.zig";
 const FILE_CSPROJ_SUFFIX: &str = ".csproj";
 const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
 
-const PROJECT_CARGO_DIRS: [&str; 1] = ["target"];
+const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
 const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Library",
