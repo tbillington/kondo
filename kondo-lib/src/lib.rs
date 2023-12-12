@@ -68,7 +68,7 @@ const PROJECT_PUB_DIRS: [&str; 4] = [
     "linux/flutter/ephemeral",
     "windows/flutter/ephemeral",
 ];
-const PROJECT_ELIXIR_DIRS: [&str; 1] = ["_build"];
+const PROJECT_ELIXIR_DIRS: [&str; 4] = ["_build", ".elixir-tools", ".elixir_ls", ".lexical"];
 const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
 const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
 const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
