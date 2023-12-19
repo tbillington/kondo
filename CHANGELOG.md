@@ -1,3 +1,14 @@
+# 0.8 2023-12-19
+
+- Add .NET (C# and F#) support by @mrivnak in https://github.com/tbillington/kondo/pull/106
+- Add Godot 4 support by @anosatsuk124 in https://github.com/tbillington/kondo/commit/764a00db7a257cdeade77ac3d5be66e80eadcd43
+- Add support for elixir language server artifact directories by @aschiavon91 in https://github.com/tbillington/kondo/pull/112
+- Add shell completion generation by @NickyMeuleman in https://github.com/tbillington/kondo/pull/100
+- Add CLion support for CMake by @mrivnak in https://github.com/tbillington/kondo/pull/107
+- Add .tox support to python projects by @jwodder in https://github.com/tbillington/kondo/pull/104
+- Add support for cleaning xwin-cache in cargo projects by @tbillington in https://github.com/tbillington/kondo/commit/936e2a6844462e11c1038cfc4725f8fa7e879f44
+- Fix date formatting for years, more accurate day duration by @tbillington
+
 # 0.7 2023-07-06
 
 - Add support for Gradle projects by @s-aditya-k and @Lipen in https://github.com/tbillington/kondo/pull/81, https://github.com/tbillington/kondo/pull/85
