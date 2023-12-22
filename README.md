@@ -67,6 +67,11 @@ Excellent if
 
 ### Command Line
 
+**winget**
+```powershell
+winget install kondo
+```
+
 **Homebrew**
 
 ```sh
