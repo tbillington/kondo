@@ -34,7 +34,7 @@ fn run_local() {
     let finished = AtomicCell::new(false);
 
     let initial_paths = vec![
-        PathBuf::from("/Users/choc/junk-code"), // std::env::current_dir().unwrap()
+        PathBuf::from("/Users/choc/wkspaces/Aetherift"), // std::env::current_dir().unwrap()
     ];
 
     for path in initial_paths.into_iter() {
@@ -111,9 +111,9 @@ fn run_local() {
 mod tests {
     use super::*;
 
-    #[test]
-    fn it_works() {
-        run_local();
-        assert!(false);
-    }
+    // #[test]
+    // fn it_works() {
+    //     run_local();
+    //     assert!(false);
+    // }
 }
