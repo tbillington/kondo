@@ -41,7 +41,7 @@ pub trait Project {
 
 //     #[test]
 //     fn bramm() {
-//         let pp = TestDirectoryBuilder::default()
+//         let td = TestDirectoryBuilder::default()
 //             .file("package.json")
 //             .file("src/main.js")
 //             .artifact("node_modules/foo")

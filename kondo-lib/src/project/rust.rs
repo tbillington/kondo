@@ -27,23 +27,23 @@ mod tests {
 
     #[test]
     fn rust_project_minimal() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file("Cargo.toml")
             .build()
             .unwrap();
 
-        assert!(RustProject.is_project(&pp.root));
+        assert!(RustProject.is_project(&td.root));
     }
 
     #[test]
     fn rust_project_typical() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file("Cargo.toml")
             .file("src/main.rs")
             .artifact("target/proj")
             .build()
             .unwrap();
 
-        assert!(RustProject.is_project(&pp.root));
+        assert!(RustProject.is_project(&td.root));
     }
 }

@@ -27,17 +27,17 @@ mod tests {
 
     #[test]
     fn unity_project_minimal() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file("Assembly-CSharp.csproj")
             .build()
             .unwrap();
 
-        assert!(UnityProject.is_project(&pp.root));
+        assert!(UnityProject.is_project(&td.root));
     }
 
     #[test]
     fn unity_project_typical() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file("Assembly-CSharp.csproj")
             .file("Assembly-CSharp-Editor.csproj")
             .file("FunGame.sln")
@@ -46,6 +46,6 @@ mod tests {
             .build()
             .unwrap();
 
-        assert!(UnityProject.is_project(&pp.root));
+        assert!(UnityProject.is_project(&td.root));
     }
 }

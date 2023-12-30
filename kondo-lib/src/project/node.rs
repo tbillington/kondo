@@ -55,33 +55,33 @@ mod tests {
 
     #[test]
     fn node_minimal() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file("package.json")
             .build()
             .unwrap();
 
-        assert!(NodeProject.is_project(&pp.root));
+        assert!(NodeProject.is_project(&td.root));
     }
 
     #[test]
     fn node_typical() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file("package.json")
             .file("index.js")
             .artifact("node_modules/index.js")
             .build()
             .unwrap();
 
-        assert!(NodeProject.is_project(&pp.root));
+        assert!(NodeProject.is_project(&td.root));
     }
 
     #[test]
     fn ignore_unity_packages() {
-        let pp = TestDirectoryBuilder::default()
+        let td = TestDirectoryBuilder::default()
             .file_content("package.json", r#"{"unity":"2019.4"}"#)
             .build()
             .unwrap();
 
-        assert!(!NodeProject.is_project(&pp.root));
+        assert!(!NodeProject.is_project(&td.root));
     }
 }
