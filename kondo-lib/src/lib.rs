@@ -1,6 +1,9 @@
 mod project;
 mod search;
 
+#[cfg(test)]
+mod test;
+
 use std::{path::PathBuf, thread::available_parallelism, time::Duration};
 
 use crossbeam_channel::unbounded;

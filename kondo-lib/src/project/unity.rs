@@ -18,3 +18,34 @@ impl Project for UnityProject {
         path.is_dir() && path.file_name().is_some_and(|f| f == "Library")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::TestDirectoryBuilder;
+
+    use super::*;
+
+    #[test]
+    fn unity_project_minimal() {
+        let pp = TestDirectoryBuilder::default()
+            .file("Assembly-CSharp.csproj")
+            .build()
+            .unwrap();
+
+        assert!(UnityProject.is_project(&pp.root));
+    }
+
+    #[test]
+    fn unity_project_typical() {
+        let pp = TestDirectoryBuilder::default()
+            .file("Assembly-CSharp.csproj")
+            .file("Assembly-CSharp-Editor.csproj")
+            .file("FunGame.sln")
+            .file("Assets/script.cs")
+            .artifact("Library/foo")
+            .build()
+            .unwrap();
+
+        assert!(UnityProject.is_project(&pp.root));
+    }
+}
