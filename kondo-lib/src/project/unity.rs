@@ -1,4 +1,6 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use crate::project::utils::filter_exists;
 
 use super::Project;
 
@@ -6,8 +8,12 @@ use super::Project;
 pub struct UnityProject;
 
 impl Project for UnityProject {
-    fn name(&self) -> &str {
+    fn kind_name(&self) -> &str {
         "Unity"
+    }
+
+    fn name(&self, root_dir: &Path) -> Option<String> {
+        unity::project_name(root_dir).ok().flatten()
     }
 
     fn is_project(&self, root_dir: &Path) -> bool {
@@ -15,9 +21,26 @@ impl Project for UnityProject {
     }
 
     fn is_artifact(&self, path: &Path) -> bool {
-        path.is_dir() && path.file_name().is_some_and(|f| f == "Library")
+        path.is_dir()
+            && path
+                .file_name()
+                .is_some_and(|f| PATHS.iter().any(|p| *p == f))
+    }
+
+    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
+        filter_exists(root_dir, &PATHS).collect()
     }
 }
+
+const PATHS: [&str; 7] = [
+    "Library",
+    "Temp",
+    "Obj",
+    "Logs",
+    "MemoryCaptures",
+    "Build",
+    "Builds",
+];
 
 #[cfg(test)]
 mod tests {
@@ -47,5 +70,23 @@ mod tests {
             .unwrap();
 
         assert!(UnityProject.is_project(&td.root));
+    }
+
+    #[test]
+    fn unity_project_name() {
+        let td = TestDirectoryBuilder::default()
+            .file("Assembly-CSharp.csproj")
+            .file_content(
+                "ProjectSettings/ProjectSettings.asset",
+                r#"
+%YAML 1.1
+PlayerSettings:
+  productName: PossumGame
+                "#,
+            )
+            .build()
+            .unwrap();
+
+        assert_eq!(UnityProject.name(&td.root), Some("PossumGame".to_string()));
     }
 }

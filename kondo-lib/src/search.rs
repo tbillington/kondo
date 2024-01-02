@@ -73,7 +73,7 @@ pub(crate) fn search_thread(
             });
 
             found_projects.drain(..).for_each(|(path, p)| {
-                println!("Found project: {} {}", p.name(), path.display());
+                println!("Found project: {} {}", p.kind_name(), path.display());
                 result_sender.send((path, p)).unwrap();
             });
 

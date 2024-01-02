@@ -1,6 +1,8 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use miniserde::Deserialize;
+use serde::Deserialize;
+
+use crate::project::utils::filter_exists;
 
 use super::Project;
 
@@ -8,8 +10,16 @@ use super::Project;
 pub struct NodeProject;
 
 impl Project for NodeProject {
-    fn name(&self) -> &str {
+    fn kind_name(&self) -> &str {
         "Node"
+    }
+
+    fn name(&self, root_dir: &Path) -> Option<String> {
+        serde_json::from_str::<PackageJson>(
+            &std::fs::read_to_string(root_dir.join("package.json")).ok()?,
+        )
+        .ok()?
+        .name
     }
 
     fn is_project(&self, root_dir: &Path) -> bool {
@@ -26,7 +36,7 @@ impl Project for NodeProject {
         };
 
         let Ok(package_json_contents) =
-            miniserde::json::from_str::<PackageManifestUnity>(&package_json_contents)
+            serde_json::from_str::<PackageManifestUnity>(&package_json_contents)
         else {
             return true;
         };
@@ -38,8 +48,22 @@ impl Project for NodeProject {
     }
 
     fn is_artifact(&self, path: &Path) -> bool {
-        path.is_dir() && path.file_name().is_some_and(|f| f == "node_modules")
+        path.is_dir()
+            && path
+                .file_name()
+                .is_some_and(|f| PATHS.iter().any(|p| *p == f))
     }
+
+    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
+        filter_exists(root_dir, &PATHS).collect()
+    }
+}
+
+const PATHS: [&str; 2] = ["node_modules", ".angular"];
+
+#[derive(Deserialize)]
+struct PackageJson {
+    name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -73,6 +97,16 @@ mod tests {
             .unwrap();
 
         assert!(NodeProject.is_project(&td.root));
+    }
+
+    #[test]
+    fn node_project_name() {
+        let td = TestDirectoryBuilder::default()
+            .file_content("package.json", r#"{"name":"react"}"#)
+            .build()
+            .unwrap();
+
+        assert_eq!(NodeProject.name(&td.root), Some("react".to_string()));
     }
 
     #[test]

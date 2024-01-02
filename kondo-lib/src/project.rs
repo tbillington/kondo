@@ -1,10 +1,11 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use enum_dispatch::enum_dispatch;
 
 mod node;
 mod rust;
 mod unity;
+mod utils;
 
 use node::NodeProject;
 use rust::RustProject;
@@ -28,9 +29,11 @@ impl ProjectEnum {
 
 #[enum_dispatch(ProjectEnum)]
 pub trait Project {
-    fn name(&self) -> &str;
+    fn kind_name(&self) -> &str;
+    fn name(&self, root_dir: &Path) -> Option<String>;
     fn is_project(&self, root_dir: &Path) -> bool;
     fn is_artifact(&self, path: &Path) -> bool;
+    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf>;
 }
 
 // #[cfg(test)]

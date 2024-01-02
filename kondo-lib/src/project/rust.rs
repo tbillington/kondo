@@ -1,4 +1,8 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use serde::Deserialize;
+
+use crate::project::utils::filter_exists;
 
 use super::Project;
 
@@ -6,8 +10,15 @@ use super::Project;
 pub struct RustProject;
 
 impl Project for RustProject {
-    fn name(&self) -> &str {
+    fn kind_name(&self) -> &str {
         "Rust"
+    }
+
+    fn name(&self, root_dir: &Path) -> Option<String> {
+        toml::from_str::<CargoToml>(&std::fs::read_to_string(root_dir.join("Cargo.toml")).ok()?)
+            .ok()?
+            .package?
+            .name
     }
 
     fn is_project(&self, root_dir: &Path) -> bool {
@@ -15,8 +26,27 @@ impl Project for RustProject {
     }
 
     fn is_artifact(&self, path: &Path) -> bool {
-        path.is_dir() && path.file_name().is_some_and(|f| f == "target")
+        path.is_dir()
+            && path
+                .file_name()
+                .is_some_and(|f| PATHS.iter().any(|p| *p == f))
     }
+
+    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
+        filter_exists(root_dir, &PATHS).collect()
+    }
+}
+
+const PATHS: [&str; 2] = ["target", ".xwin-cache"];
+
+#[derive(Deserialize)]
+struct CargoToml {
+    package: Option<CargoTomlPackage>,
+}
+
+#[derive(Deserialize)]
+struct CargoTomlPackage {
+    name: Option<String>,
 }
 
 #[cfg(test)]
@@ -45,5 +75,21 @@ mod tests {
             .unwrap();
 
         assert!(RustProject.is_project(&td.root));
+    }
+
+    #[test]
+    fn rust_project_name() {
+        let td = TestDirectoryBuilder::default()
+            .file_content(
+                "Cargo.toml",
+                r#"
+[package]
+name = "kondo"
+                "#,
+            )
+            .build()
+            .unwrap();
+
+        assert_eq!(RustProject.name(&td.root), Some("kondo".to_string()));
     }
 }
