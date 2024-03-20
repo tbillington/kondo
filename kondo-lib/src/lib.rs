@@ -18,6 +18,7 @@ const FILE_CMAKE_BUILD: &str = "CMakeLists.txt";
 const FILE_UNREAL_SUFFIX: &str = ".uproject";
 const FILE_JUPYTER_SUFFIX: &str = ".ipynb";
 const FILE_PYTHON_SUFFIX: &str = ".py";
+const FILE_PIXI_PACKAGE: &str = "pixi.toml";
 const FILE_COMPOSER_JSON: &str = "composer.json";
 const FILE_PUBSPEC_YAML: &str = "pubspec.yaml";
 const FILE_ELIXIR_MIX: &str = "mix.exs";
@@ -61,6 +62,7 @@ const PROJECT_PYTHON_DIRS: [&str; 8] = [
     "__pycache__",
     "__pypackages__",
 ];
+const PROJECT_PIXI_DIRS: [&str; 1] = [".pixi"];
 const PROJECT_COMPOSER_DIRS: [&str; 1] = ["vendor"];
 const PROJECT_PUB_DIRS: [&str; 4] = [
     "build",
@@ -85,6 +87,7 @@ const PROJECT_CMAKE_NAME: &str = "CMake";
 const PROJECT_UNREAL_NAME: &str = "Unreal";
 const PROJECT_JUPYTER_NAME: &str = "Jupyter";
 const PROJECT_PYTHON_NAME: &str = "Python";
+const PROJECT_PIXI_NAME: &str = "Pixi";
 const PROJECT_COMPOSER_NAME: &str = "Composer";
 const PROJECT_PUB_NAME: &str = "Pub";
 const PROJECT_ELIXIR_NAME: &str = "Elixir";
@@ -107,6 +110,7 @@ pub enum ProjectType {
     Unreal,
     Jupyter,
     Python,
+    Pixi,
     Composer,
     Pub,
     Elixir,
@@ -141,6 +145,7 @@ impl Project {
             ProjectType::Unreal => &PROJECT_UNREAL_DIRS,
             ProjectType::Jupyter => &PROJECT_JUPYTER_DIRS,
             ProjectType::Python => &PROJECT_PYTHON_DIRS,
+            ProjectType::Pixi => &PROJECT_PIXI_DIRS,
             ProjectType::CMake => &PROJECT_CMAKE_DIRS,
             ProjectType::Composer => &PROJECT_COMPOSER_DIRS,
             ProjectType::Pub => &PROJECT_PUB_DIRS,
@@ -249,6 +254,7 @@ impl Project {
             ProjectType::Unreal => PROJECT_UNREAL_NAME,
             ProjectType::Jupyter => PROJECT_JUPYTER_NAME,
             ProjectType::Python => PROJECT_PYTHON_NAME,
+            ProjectType::Pixi => PROJECT_PIXI_NAME,
             ProjectType::CMake => PROJECT_CMAKE_NAME,
             ProjectType::Composer => PROJECT_COMPOSER_NAME,
             ProjectType::Pub => PROJECT_PUB_NAME,
@@ -357,6 +363,7 @@ impl Iterator for ProjectIter {
                     FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                     FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                     FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
+                    FILE_PIXI_PACKAGE => Some(ProjectType::Pixi),
                     FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                     FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                     FILE_BUILD_GRADLE => Some(ProjectType::Gradle),
@@ -477,6 +484,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_CMAKE_BUILD => Some(ProjectType::CMake),
                 FILE_COMPOSER_JSON => Some(ProjectType::Composer),
                 FILE_PUBSPEC_YAML => Some(ProjectType::Pub),
+                FILE_PIXI_PACKAGE => Some(ProjectType::Pixi),
                 FILE_ELIXIR_MIX => Some(ProjectType::Elixir),
                 FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                 FILE_BUILD_ZIG => Some(ProjectType::Zig),

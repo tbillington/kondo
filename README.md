@@ -24,6 +24,7 @@ Excellent if
 <p align="center">
 <a href="https://gradle.com/">Gradle</a> (Java)
 <a href="https://jupyter.org/">Jupyter Notebook</a> (Python),
+<a href="https://pixi.sh/">Pixi</a> (Python),
 <a href="https://maven.apache.org/">Maven</a> (Java),
 <a href="https://nodejs.org/">Node</a> (JavaScript)
 </p>
