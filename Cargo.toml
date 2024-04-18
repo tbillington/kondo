@@ -1,10 +1,19 @@
 [workspace]
-members = ["kondo-lib", "path-trie"]
+members = ["kondo-lib", "kondo-tui", "path-trie"]
 resolver = "2"
 
 [workspace.dependencies]
 path-trie = { path = "./path-trie" }
+kondo-lib = { path = "./kondo-lib" }
+# [profile.release]
+# lto = "thin"
+# codegen-units = 1
 
-[profile.release]
-lto = "thin"
+[profile.distribution]
+inherits = "release"
+# strip = true
+lto = true
 codegen-units = 1
+panic = 'abort'
+# debug = 0
+debug = true

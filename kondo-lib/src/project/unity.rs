@@ -8,7 +8,7 @@ use super::Project;
 pub struct UnityProject;
 
 impl Project for UnityProject {
-    fn kind_name(&self) -> &str {
+    fn kind_name(&self) -> &'static str {
         "Unity"
     }
 

@@ -25,11 +25,72 @@ impl ProjectEnum {
         Self::NodeProject(NodeProject),
         Self::UnityProject(UnityProject),
     ];
+
+    pub fn artifact_size(&self, path: &Path) -> u64 {
+        self.artifacts(path)
+            .into_iter()
+            .map(|path| {
+                walkdir::WalkDir::new(path)
+                    .same_file_system(true)
+                    .follow_root_links(false)
+                    .follow_links(false)
+                    .into_iter()
+                    .filter_map(Result::ok)
+                    .filter(|e| e.file_type().is_file())
+                    .filter_map(|e| e.metadata().map(|md| md.len()).ok())
+                    .sum::<u64>()
+            })
+            .sum()
+    }
+
+    pub fn last_modified(&self, path: &Path) -> Result<std::time::SystemTime, std::io::Error> {
+        let top_level_modified = std::fs::metadata(path)?.modified()?;
+        let most_recent_modified = path
+            .read_dir()?
+            .flatten()
+            .filter(|entry| !self.is_artifact(&entry.path()))
+            .filter_map(|entry| {
+                let file_type = entry.file_type().ok()?;
+                Some((entry, file_type))
+            })
+            .fold(top_level_modified, |acc, (entry, file_type)| {
+                if file_type.is_file() {
+                    if let Ok(e) = entry.metadata() {
+                        if let Ok(modified) = e.modified() {
+                            if modified > acc {
+                                return modified;
+                            }
+                        }
+                    }
+                } else if file_type.is_file() {
+                    return walkdir::WalkDir::new(path)
+                        .same_file_system(true)
+                        .follow_root_links(false)
+                        .follow_links(false)
+                        .into_iter()
+                        .filter_map(Result::ok)
+                        .filter_map(|e| e.metadata().ok()?.modified().ok())
+                        .fold(
+                            acc,
+                            |acc, last_mod| {
+                                if last_mod > acc {
+                                    last_mod
+                                } else {
+                                    acc
+                                }
+                            },
+                        );
+                }
+                acc
+            });
+
+        Ok(most_recent_modified)
+    }
 }
 
 #[enum_dispatch(ProjectEnum)]
 pub trait Project {
-    fn kind_name(&self) -> &str;
+    fn kind_name(&self) -> &'static str;
     fn name(&self, root_dir: &Path) -> Option<String>;
     fn is_project(&self, root_dir: &Path) -> bool;
     fn is_artifact(&self, path: &Path) -> bool;

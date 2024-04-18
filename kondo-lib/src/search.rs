@@ -18,8 +18,9 @@ pub(crate) fn search_thread(
     active: &AtomicCell<bool>,
     finished: &AtomicCell<bool>,
     result_sender: &Sender<Res>,
+    project_filter: &[ProjectEnum],
 ) {
-    let mut scan_count = 0;
+    let mut scan_count: u32 = 0;
     let mut found_projects = Vec::new();
     // let mut non_artifact_dirs = Vec::new();
     loop {
@@ -36,7 +37,7 @@ pub(crate) fn search_thread(
 
             scan_count += 1;
 
-            for p in ProjectEnum::ALL.iter() {
+            for p in project_filter.iter() {
                 if p.is_project(&path) {
                     found_projects.push((path.clone(), *p));
                     // println!("Found project: {} {}", p.name(), path.display());
@@ -73,8 +74,11 @@ pub(crate) fn search_thread(
             });
 
             found_projects.drain(..).for_each(|(path, p)| {
-                println!("Found project: {} {}", p.kind_name(), path.display());
-                result_sender.send((path, p)).unwrap();
+                // println!("Found project: {} {}", p.kind_name(), path.display());
+                if result_sender.send((path, p)).is_err() {
+                    // Should this be a separate Atomic Var ? User has dropped the channel
+                    finished.store(true);
+                }
             });
 
             continue;
@@ -193,7 +197,7 @@ pub(crate) fn search_thread(
         }
         active.store(true);
     }
-    println!("Thread {} scanned {} dirs", i, scan_count);
+    // println!("Thread {} scanned {} dirs", i, scan_count);
 }
 
 fn find_task(

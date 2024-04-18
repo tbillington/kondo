@@ -10,7 +10,7 @@ use super::Project;
 pub struct RustProject;
 
 impl Project for RustProject {
-    fn kind_name(&self) -> &str {
+    fn kind_name(&self) -> &'static str {
         "Rust"
     }
 

@@ -10,7 +10,7 @@ use super::Project;
 pub struct NodeProject;
 
 impl Project for NodeProject {
-    fn kind_name(&self) -> &str {
+    fn kind_name(&self) -> &'static str {
         "Node"
     }
 
