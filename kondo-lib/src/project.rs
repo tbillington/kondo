@@ -16,8 +16,8 @@ pub trait Project {
     fn kind_name(&self) -> &'static str;
     fn name(&self, root_dir: &Path) -> Option<String>;
     fn is_project(&self, root_dir: &Path) -> bool;
-    fn is_artifact(&self, path: &Path) -> bool;
-    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf>;
+    fn is_root_artifact(&self, root_path: &Path) -> bool;
+    fn root_artifacts(&self, root_dir: &Path) -> Vec<PathBuf>;
 }
 
 #[enum_dispatch]
@@ -36,7 +36,7 @@ impl ProjectEnum {
     ];
 
     pub fn artifact_size(&self, path: &Path) -> u64 {
-        self.artifacts(path)
+        self.root_artifacts(path)
             .into_iter()
             .map(|path| {
                 walkdir::WalkDir::new(path)
@@ -57,7 +57,7 @@ impl ProjectEnum {
         let most_recent_modified = path
             .read_dir()?
             .flatten()
-            .filter(|entry| !self.is_artifact(&entry.path()))
+            .filter(|entry| !self.is_root_artifact(&entry.path()))
             .filter_map(|entry| {
                 let file_type = entry.file_type().ok()?;
                 Some((entry, file_type))

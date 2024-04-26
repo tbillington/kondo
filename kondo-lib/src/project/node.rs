@@ -47,14 +47,14 @@ impl Project for NodeProject {
         }
     }
 
-    fn is_artifact(&self, path: &Path) -> bool {
-        path.is_dir()
-            && path
+    fn is_root_artifact(&self, root_path: &Path) -> bool {
+        root_path.is_dir()
+            && root_path
                 .file_name()
                 .is_some_and(|f| PATHS.iter().any(|p| *p == f))
     }
 
-    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
+    fn root_artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
         filter_exists(root_dir, &PATHS).collect()
     }
 }

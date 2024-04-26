@@ -66,7 +66,7 @@ pub(crate) fn search_thread(
 
                 if found_projects
                     .iter()
-                    .all(|(_, p)| !p.is_artifact(&entry.path()))
+                    .all(|(_, p)| !p.is_root_artifact(&entry.path()))
                 {
                     local.push(entry.path());
                     // non_artifact_dirs.push(entry.path());
