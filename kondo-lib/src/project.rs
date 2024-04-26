@@ -16,7 +16,9 @@ pub trait Project {
     fn kind_name(&self) -> &'static str;
     fn name(&self, root_dir: &Path) -> Option<String>;
     fn is_project(&self, root_dir: &Path) -> bool;
+    /// Assumes `root_path` is a valid `Project` of the same kind resulting from `Project::is_proejct`
     fn is_root_artifact(&self, root_path: &Path) -> bool;
+    /// Assumes `root_dir` is a valid `Project` of the same kind resulting from `Project::is_proejct`
     fn root_artifacts(&self, root_dir: &Path) -> Vec<PathBuf>;
 }
 
