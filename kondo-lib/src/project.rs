@@ -11,6 +11,15 @@ use node::NodeProject;
 use rust::RustProject;
 use unity::UnityProject;
 
+#[enum_dispatch(ProjectEnum)]
+pub trait Project {
+    fn kind_name(&self) -> &'static str;
+    fn name(&self, root_dir: &Path) -> Option<String>;
+    fn is_project(&self, root_dir: &Path) -> bool;
+    fn is_artifact(&self, path: &Path) -> bool;
+    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf>;
+}
+
 #[enum_dispatch]
 #[derive(Debug, Clone, Copy)]
 pub enum ProjectEnum {
@@ -86,15 +95,6 @@ impl ProjectEnum {
 
         Ok(most_recent_modified)
     }
-}
-
-#[enum_dispatch(ProjectEnum)]
-pub trait Project {
-    fn kind_name(&self) -> &'static str;
-    fn name(&self, root_dir: &Path) -> Option<String>;
-    fn is_project(&self, root_dir: &Path) -> bool;
-    fn is_artifact(&self, path: &Path) -> bool;
-    fn artifacts(&self, root_dir: &Path) -> Vec<PathBuf>;
 }
 
 // #[cfg(test)]
