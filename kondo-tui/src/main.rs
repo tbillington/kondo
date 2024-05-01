@@ -7,7 +7,11 @@ use ratatui::{
         Block, Borders, Cell, Clear, Row, Table, TableState,
     },
 };
-use std::{io, path::PathBuf, time::Duration};
+use std::{
+    io,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 mod tui;
 
@@ -18,6 +22,7 @@ pub struct App {
     rx: Receiver<TableEntry>,
     proj_count: u32,
     display_help: bool,
+    selected: Option<Box<str>>,
 }
 
 const EVENT_POLL_DURATION: Duration = Duration::from_millis(16);
@@ -58,6 +63,50 @@ impl App {
                 Constraint::Percentage((100 - percent_x) / 2),
             ])
             .split(popup_layout[1])[1]
+        }
+
+        if let Some(selected_path) = &self.selected {
+            if let Some(selected) = self
+                .the_list
+                .items
+                .iter()
+                .find(|entry| entry.path == *selected_path)
+            {
+                let popup_area = Rect {
+                    x: area.width / 4,
+                    y: area.height / 3,
+                    width: area.width / 2,
+                    height: (area.height / 3).max(4),
+                };
+
+                let selected_path = Path::new(selected.path.as_ref());
+
+                let root_artifacts = selected.proj.root_artifacts(&selected_path);
+
+                let para = root_artifacts
+                    .into_iter()
+                    .map(|pb| {
+                        pb.strip_prefix(selected_path)
+                            .unwrap_or(&pb)
+                            .to_string_lossy()
+                            .to_string()
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                let bad_popup = ratatui::widgets::Paragraph::new(para)
+                    .wrap(ratatui::widgets::Wrap { trim: true })
+                    .style(Style::new().yellow())
+                    .block(
+                        Block::new()
+                            .title(selected.name.as_ref())
+                            .title_style(Style::new().white().bold())
+                            .borders(Borders::ALL)
+                            .border_style(Style::new().red()),
+                    );
+                frame.render_widget(Clear, popup_area);
+                frame.render_widget(bad_popup, popup_area);
+            }
         }
     }
 
@@ -100,6 +149,13 @@ impl App {
             KeyCode::Down | KeyCode::Char('j') => self.the_list.key_down_arrow(),
             KeyCode::Up | KeyCode::Char('k') => self.the_list.key_up_arrow(),
             KeyCode::Char('?') => self.display_help(!self.display_help),
+            KeyCode::Enter => {
+                if let Some(selected_idx) = self.the_list.table_state.selected() {
+                    if let Some(selected_item) = self.the_list.items.get(selected_idx) {
+                        self.selected = Some(selected_item.path.clone());
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -191,7 +247,7 @@ impl Widget for &mut ProjectList {
 
         let path_column_width = rects[1].width as usize;
 
-        let rows = self.items.iter().map(|proj| {
+        let rows = self.items.iter().chain(self.items.iter()).map(|proj| {
             // let name = Text::from(proj.1.name(&proj.0).unwrap_or_default());
 
             // let mut path = proj.0.to_string_lossy().into_owned();
@@ -379,7 +435,7 @@ struct TableEntry {
 fn main() -> io::Result<()> {
     let mut terminal = tui::init()?;
 
-    let rx = kondo_lib::run_local([PathBuf::from("/Users/choc/code")].into_iter(), None);
+    let rx = kondo_lib::run_local([PathBuf::from("/home/choc/code")].into_iter(), None);
     let (ttx, rrx) = kondo_lib::crossbeam::unbounded();
     std::thread::spawn(move || {
         while let Ok((path, proj)) = rx.recv() {
@@ -435,6 +491,7 @@ fn main() -> io::Result<()> {
         the_list: ProjectList::default(),
         proj_count: 0,
         display_help: false,
+        selected: None,
     };
 
     let app_result = app.run(&mut terminal);
