@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-pub(crate) fn filter_exists<'a>(
+pub(crate) fn filter_paths_exist<'a>(
     root: &'a Path,
     paths: &'a [&str],
 ) -> impl Iterator<Item = PathBuf> + 'a {

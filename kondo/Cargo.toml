@@ -1,9 +1,10 @@
 [package]
-name = "kondo-tui"
+name = "kondo"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
 crossterm = "0.27.0"
 kondo-lib = { workspace = true }
 ratatui = { version = "0.26.2" }

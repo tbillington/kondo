@@ -1,3 +1,4 @@
+use clap::{command, Parser};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use kondo_lib::{crossbeam::Receiver, Project, ProjectEnum};
 use ratatui::{
@@ -265,8 +266,9 @@ impl Widget for &mut ProjectList {
             fn proj_colour(proj: ProjectEnum) -> Color {
                 // https://github.com/ozh/github-colors/blob/master/colors.json
                 match proj {
-                    ProjectEnum::RustProject(_) => Color::from_u32(0xdea584),
+                    ProjectEnum::CMakeProject(_) => Color::from_u32(0xda3434),
                     ProjectEnum::NodeProject(_) => Color::from_u32(0xf1e05a),
+                    ProjectEnum::RustProject(_) => Color::from_u32(0xdea584),
                     ProjectEnum::UnityProject(_) => Color::from_u32(0x178600),
                 }
             }
@@ -432,10 +434,22 @@ struct TableEntry {
     last_modified_secs: Option<(u64, Box<str>)>,
 }
 
+#[derive(Parser, Debug)]
+#[command(name = "kondo")]
+struct Opt {
+    /// The directories to examine. Current working directory will be used if DIRS is omitted.
+    #[arg(name = "DIRS")]
+    dirs: Vec<PathBuf>,
+}
+
 fn main() -> io::Result<()> {
+    let mut opt = Opt::parse();
+
     let mut terminal = tui::init()?;
 
-    let rx = kondo_lib::run_local([PathBuf::from("/home/choc/code")].into_iter(), None);
+    let cwd = std::env::current_dir().unwrap();
+
+    let rx = kondo_lib::run_local([PathBuf::from(cwd)].into_iter(), None);
     let (ttx, rrx) = kondo_lib::crossbeam::unbounded();
     std::thread::spawn(move || {
         while let Ok((path, proj)) = rx.recv() {

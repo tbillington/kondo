@@ -4,6 +4,7 @@ version = "0.9.0"
 edition = "2021"
 
 [dependencies]
+cmake-parser = { git = "https://github.com/rust-utility/cmake-parser.git", rev = "bf7e490" }
 crossbeam-channel = "0.5"
 crossbeam-deque = "0.8"
 crossbeam-utils = "0.8"

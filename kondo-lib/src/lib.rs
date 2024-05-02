@@ -1,4 +1,4 @@
-mod project;
+pub mod project;
 mod search;
 
 #[cfg(test)]

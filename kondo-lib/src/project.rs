@@ -2,11 +2,13 @@ use std::path::{Path, PathBuf};
 
 use enum_dispatch::enum_dispatch;
 
-mod node;
-mod rust;
-mod unity;
-mod utils;
+pub mod cmake;
+pub mod node;
+pub mod rust;
+pub mod unity;
+pub mod utils;
 
+use cmake::CMakeProject;
 use node::NodeProject;
 use rust::RustProject;
 use unity::UnityProject;
@@ -25,15 +27,17 @@ pub trait Project {
 #[enum_dispatch]
 #[derive(Debug, Clone, Copy)]
 pub enum ProjectEnum {
-    RustProject,
+    CMakeProject,
     NodeProject,
+    RustProject,
     UnityProject,
 }
 
 impl ProjectEnum {
-    pub const ALL: [Self; 3] = [
-        Self::RustProject(RustProject),
+    pub const ALL: [Self; 4] = [
+        Self::CMakeProject(CMakeProject),
         Self::NodeProject(NodeProject),
+        Self::RustProject(RustProject),
         Self::UnityProject(UnityProject),
     ];
 

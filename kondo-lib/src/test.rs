@@ -77,6 +77,8 @@ impl TestDirectory {
 
 impl Drop for TestDirectory {
     fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.root).unwrap();
+        if let Err(err) = std::fs::remove_dir_all(&self.root) {
+            eprintln!("failed cleaning up TestDirectory {:?}: {}", self.root, err);
+        }
     }
 }

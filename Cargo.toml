@@ -1,5 +1,5 @@
 [workspace]
-members = ["kondo-lib", "kondo-tui", "path-trie"]
+members = ["kondo", "kondo-lib", "path-trie"]
 resolver = "2"
 
 [workspace.dependencies]

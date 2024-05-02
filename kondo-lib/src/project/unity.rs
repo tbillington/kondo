@@ -1,11 +1,21 @@
 use std::path::{Path, PathBuf};
 
-use crate::project::utils::filter_exists;
+use crate::project::utils::filter_paths_exist;
 
 use super::Project;
 
 #[derive(Debug, Clone, Copy)]
 pub struct UnityProject;
+
+const ROOT_ARTIFACT_PATHS: [&str; 7] = [
+    "Library",
+    "Temp",
+    "Obj",
+    "Logs",
+    "MemoryCaptures",
+    "Build",
+    "Builds",
+];
 
 impl Project for UnityProject {
     fn kind_name(&self) -> &'static str {
@@ -24,23 +34,13 @@ impl Project for UnityProject {
         root_path.is_dir()
             && root_path
                 .file_name()
-                .is_some_and(|f| PATHS.iter().any(|p| *p == f))
+                .is_some_and(|f| ROOT_ARTIFACT_PATHS.iter().any(|p| *p == f))
     }
 
     fn root_artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
-        filter_exists(root_dir, &PATHS).collect()
+        filter_paths_exist(root_dir, &ROOT_ARTIFACT_PATHS).collect()
     }
 }
-
-const PATHS: [&str; 7] = [
-    "Library",
-    "Temp",
-    "Obj",
-    "Logs",
-    "MemoryCaptures",
-    "Build",
-    "Builds",
-];
 
 #[cfg(test)]
 mod tests {
