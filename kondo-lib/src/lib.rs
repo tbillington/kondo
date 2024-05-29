@@ -140,23 +140,23 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn it_works() {
-        let initial_paths = vec![
-            PathBuf::from("/Users/choc/wkspaces/Aetherift"), // std::env::current_dir().unwrap()
-        ];
-        // let project_filter = ProjectEnum::ALL;
-        let start = std::time::Instant::now();
-        let res = run_local(initial_paths.into_iter(), None);
-        for r in res {
-            println!(
-                "Found project: {} {:?} {}",
-                r.1.kind_name(),
-                r.1.name(&r.0),
-                r.0.display()
-            );
-        }
-        println!("Took {}ms", start.elapsed().as_millis());
-        assert!(false);
-    }
+    // #[test]
+    // fn it_works() {
+    //     let initial_paths = vec![
+    //         PathBuf::from("/Users/choc/wkspaces/Aetherift"), // std::env::current_dir().unwrap()
+    //     ];
+    //     // let project_filter = ProjectEnum::ALL;
+    //     let start = std::time::Instant::now();
+    //     let res = run_local(initial_paths.into_iter(), None);
+    //     for r in res {
+    //         println!(
+    //             "Found project: {} {:?} {}",
+    //             r.1.kind_name(),
+    //             r.1.name(&r.0),
+    //             r.0.display()
+    //         );
+    //     }
+    //     println!("Took {}ms", start.elapsed().as_millis());
+    //     assert!(false);
+    // }
 }
