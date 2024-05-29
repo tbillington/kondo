@@ -9,7 +9,7 @@ use super::Project;
 #[derive(Debug, Clone, Copy)]
 pub struct NodeProject;
 
-const ROOT_ARTIFACT_PATHS: [&str; 2] = ["node_modules", ".angular"];
+const ROOT_ARTIFACT_PATHS: &[&str] = &["node_modules", ".angular"];
 
 impl Project for NodeProject {
     fn kind_name(&self) -> &'static str {
@@ -57,7 +57,7 @@ impl Project for NodeProject {
     }
 
     fn root_artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
-        filter_paths_exist(root_dir, &ROOT_ARTIFACT_PATHS).collect()
+        filter_paths_exist(root_dir, ROOT_ARTIFACT_PATHS).collect()
     }
 }
 

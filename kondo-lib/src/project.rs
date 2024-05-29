@@ -3,12 +3,14 @@ use std::path::{Path, PathBuf};
 use enum_dispatch::enum_dispatch;
 
 pub mod cmake;
+pub mod godot;
 pub mod node;
 pub mod rust;
 pub mod unity;
 pub mod utils;
 
 use cmake::CMakeProject;
+use godot::GodotProject;
 use node::NodeProject;
 use rust::RustProject;
 use unity::UnityProject;
@@ -31,14 +33,16 @@ pub enum ProjectEnum {
     NodeProject,
     RustProject,
     UnityProject,
+    GodotProject,
 }
 
 impl ProjectEnum {
-    pub const ALL: [Self; 4] = [
-        Self::CMakeProject(CMakeProject),
-        Self::NodeProject(NodeProject),
+    pub const ALL: &'static [Self] = &[
         Self::RustProject(RustProject),
+        Self::NodeProject(NodeProject),
         Self::UnityProject(UnityProject),
+        Self::CMakeProject(CMakeProject),
+        Self::GodotProject(GodotProject),
     ];
 
     pub fn artifact_size(&self, path: &Path) -> u64 {

@@ -7,7 +7,7 @@ use super::Project;
 #[derive(Debug, Clone, Copy)]
 pub struct UnityProject;
 
-const ROOT_ARTIFACT_PATHS: [&str; 7] = [
+const ROOT_ARTIFACT_PATHS: &[&str] = &[
     "Library",
     "Temp",
     "Obj",
@@ -38,7 +38,7 @@ impl Project for UnityProject {
     }
 
     fn root_artifacts(&self, root_dir: &Path) -> Vec<PathBuf> {
-        filter_paths_exist(root_dir, &ROOT_ARTIFACT_PATHS).collect()
+        filter_paths_exist(root_dir, ROOT_ARTIFACT_PATHS).collect()
     }
 }
 

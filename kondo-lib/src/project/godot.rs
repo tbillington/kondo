@@ -1,30 +1,27 @@
 use std::path::{Path, PathBuf};
 
-use serde::Deserialize;
-
-use crate::project::utils::filter_paths_exist;
-
-use super::Project;
+use super::{utils::filter_paths_exist, Project};
 
 #[derive(Debug, Clone, Copy)]
-pub struct RustProject;
+pub struct GodotProject;
 
-const ROOT_ARTIFACT_PATHS: &[&str] = &["target", ".xwin-cache"];
+const ROOT_ARTIFACT_PATHS: &[&str] = &[".godot"];
 
-impl Project for RustProject {
+impl Project for GodotProject {
     fn kind_name(&self) -> &'static str {
-        "Rust"
+        "Godot"
     }
 
     fn name(&self, root_dir: &Path) -> Option<String> {
-        toml::from_str::<CargoToml>(&std::fs::read_to_string(root_dir.join("Cargo.toml")).ok()?)
+        ini::Ini::load_from_str(&std::fs::read_to_string(root_dir.join("project.godot")).ok()?)
             .ok()?
-            .package?
-            .name
+            .section(Some("application"))?
+            .get("config/name")
+            .map(ToString::to_string)
     }
 
     fn is_project(&self, root_dir: &Path) -> bool {
-        root_dir.join("Cargo.toml").exists()
+        root_dir.join("project.godot").exists()
     }
 
     fn is_root_artifact(&self, root_path: &Path) -> bool {
@@ -39,16 +36,6 @@ impl Project for RustProject {
     }
 }
 
-#[derive(Deserialize)]
-struct CargoToml {
-    package: Option<CargoTomlPackage>,
-}
-
-#[derive(Deserialize)]
-struct CargoTomlPackage {
-    name: Option<String>,
-}
-
 #[cfg(test)]
 mod tests {
     use crate::test::TestDirectoryBuilder;
@@ -56,40 +43,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rust_project_minimal() {
+    fn godot_project_minimal() {
         let td = TestDirectoryBuilder::default()
-            .file("Cargo.toml")
+            .file("project.godot")
             .build()
             .unwrap();
 
-        assert!(RustProject.is_project(&td.root));
+        assert!(GodotProject.is_project(&td.root));
     }
 
     #[test]
-    fn rust_project_typical() {
+    fn godot_project_typical() {
         let td = TestDirectoryBuilder::default()
-            .file("Cargo.toml")
-            .file("src/main.rs")
-            .artifact("target/proj")
+            .file("project.godot")
+            .file("Main.tscn")
+            .artifact(".godot/blah")
             .build()
             .unwrap();
 
-        assert!(RustProject.is_project(&td.root));
+        assert!(GodotProject.is_project(&td.root));
     }
 
     #[test]
-    fn rust_project_name() {
+    fn godot_project_name() {
         let td = TestDirectoryBuilder::default()
             .file_content(
-                "Cargo.toml",
+                "project.godot",
                 r#"
-[package]
-name = "kondo"
+[application]
+config/name="PossumPossumOpossum"
                 "#,
             )
             .build()
             .unwrap();
 
-        assert_eq!(RustProject.name(&td.root), Some("kondo".to_string()));
+        assert_eq!(
+            GodotProject.name(&td.root),
+            Some("PossumPossumOpossum".to_string())
+        );
     }
 }

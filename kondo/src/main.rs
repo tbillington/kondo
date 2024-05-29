@@ -270,6 +270,7 @@ impl Widget for &mut ProjectList {
                     ProjectEnum::NodeProject(_) => Color::from_u32(0xf1e05a),
                     ProjectEnum::RustProject(_) => Color::from_u32(0xdea584),
                     ProjectEnum::UnityProject(_) => Color::from_u32(0x178600),
+                    ProjectEnum::GodotProject(_) => Color::from_u32(0x355570),
                 }
             }
 
@@ -447,9 +448,16 @@ fn main() -> io::Result<()> {
 
     let mut terminal = tui::init()?;
 
-    let cwd = std::env::current_dir().unwrap();
+    // let cwd = std::env::current_dir().unwrap();
 
-    let rx = kondo_lib::run_local([PathBuf::from(cwd)].into_iter(), None);
+    let rx = kondo_lib::run_local(
+        [
+            PathBuf::from("/Users/choc/code"),
+            // PathBuf::from(cwd)
+        ]
+        .into_iter(),
+        None,
+    );
     let (ttx, rrx) = kondo_lib::crossbeam::unbounded();
     std::thread::spawn(move || {
         while let Ok((path, proj)) = rx.recv() {
@@ -465,9 +473,9 @@ fn main() -> io::Result<()> {
 
             let artifact_bytes = proj.artifact_size(&path);
 
-            if artifact_bytes == 0 {
-                continue;
-            }
+            // if artifact_bytes == 0 {
+            //     continue;
+            // }
 
             let artifact_bytes_fmt = pretty_size2(artifact_bytes);
 
