@@ -13,17 +13,27 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
+use widgets::selected::SelectedProject;
 
 mod tui;
+mod widgets;
+
+pub(crate) type ProjId = u32;
 
 #[derive(Debug)]
-pub struct App {
+struct App {
     exit: bool,
     the_list: ProjectList,
     rx: Receiver<TableEntry>,
     proj_count: u32,
-    display_help: bool,
-    selected: Option<Box<str>>,
+    state: RuntimeState,
+}
+
+#[derive(Debug)]
+enum RuntimeState {
+    ListView,
+    DisplayHelp,
+    Selected(SelectedProject),
 }
 
 const EVENT_POLL_DURATION: Duration = Duration::from_millis(16);
@@ -40,73 +50,26 @@ impl App {
 
     fn render_frame(&mut self, frame: &mut Frame) {
         let area = frame.size();
+
         frame.render_widget(&mut self.the_list, area);
-        // frame.render_widget(self, frame.size());
 
-        if self.display_help {
-            let block = Block::default().title("Popup").borders(Borders::ALL);
-            let area = centered_rect(60, 20, area);
-            frame.render_widget(Clear, area); //this clears out the background
-            frame.render_widget(block, area);
+        if matches!(self.state, RuntimeState::DisplayHelp) {
+            self.render_help(frame);
         }
 
-        fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-            let popup_layout = Layout::vertical([
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ])
-            .split(r);
-
-            Layout::horizontal([
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ])
-            .split(popup_layout[1])[1]
-        }
-
-        if let Some(selected_path) = &self.selected {
-            if let Some(selected) = self
+        if let RuntimeState::Selected(selected_proj) = &mut self.state {
+            if let Some(table_entry) = self
                 .the_list
                 .items
                 .iter()
-                .find(|entry| entry.path == *selected_path)
+                .find(|i| i.id == selected_proj.id)
             {
-                let popup_area = Rect {
-                    x: area.width / 4,
-                    y: area.height / 3,
-                    width: area.width / 2,
-                    height: (area.height / 3).max(4),
-                };
-
-                let selected_path = Path::new(selected.path.as_ref());
-
-                let root_artifacts = selected.proj.root_artifacts(&selected_path);
-
-                let para = root_artifacts
-                    .into_iter()
-                    .map(|pb| {
-                        pb.strip_prefix(selected_path)
-                            .unwrap_or(&pb)
-                            .to_string_lossy()
-                            .to_string()
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                let bad_popup = ratatui::widgets::Paragraph::new(para)
-                    .wrap(ratatui::widgets::Wrap { trim: true })
-                    .style(Style::new().yellow())
-                    .block(
-                        Block::new()
-                            .title(selected.name.as_ref())
-                            .title_style(Style::new().white().bold())
-                            .borders(Borders::ALL)
-                            .border_style(Style::new().red()),
-                    );
-                frame.render_widget(Clear, popup_area);
-                frame.render_widget(bad_popup, popup_area);
+                let result = selected_proj.render(frame, table_entry);
+                if matches!(result, widgets::selected::SelectedWidgetResult::Finished) {
+                    self.state = RuntimeState::ListView;
+                }
+            } else {
+                self.state = RuntimeState::ListView;
             }
         }
     }
@@ -148,16 +111,19 @@ impl App {
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc => self.exit(),
+            KeyCode::Char('q') | KeyCode::Esc => match self.state {
+                RuntimeState::ListView => self.exit(),
+                _ => self.state = RuntimeState::ListView,
+            },
             // KeyCode::Left | KeyCode::Char('h') => self.decrement_counter(),
             // KeyCode::Right | KeyCode::Char('l') => self.increment_counter(),
             KeyCode::Down | KeyCode::Char('j') => self.the_list.key_down_arrow(),
             KeyCode::Up | KeyCode::Char('k') => self.the_list.key_up_arrow(),
-            KeyCode::Char('?') => self.display_help(!self.display_help),
+            KeyCode::Char('?') => self.toggle_help(),
             KeyCode::Enter => {
                 if let Some(selected_idx) = self.the_list.table_state.selected() {
                     if let Some(selected_item) = self.the_list.items.get(selected_idx) {
-                        self.selected = Some(selected_item.path.clone());
+                        self.state = RuntimeState::Selected(SelectedProject::new(selected_item));
                     }
                 }
             }
@@ -165,13 +131,82 @@ impl App {
         }
     }
 
-    fn display_help(&mut self, show: bool) {
-        self.display_help = show;
+    fn toggle_help(&mut self) {
+        self.state = match self.state {
+            RuntimeState::DisplayHelp => RuntimeState::ListView,
+            _ => RuntimeState::DisplayHelp,
+        };
     }
 
     fn exit(&mut self) {
         self.exit = true;
     }
+
+    fn render_help(&self, frame: &mut Frame) {
+        let block = Block::default().title("Popup").borders(Borders::ALL);
+        let area = centered_rect(60, 20, frame.size());
+        frame.render_widget(Clear, area); //this clears out the background
+        frame.render_widget(block, area);
+    }
+
+    fn render_selected(&self, proj_id: ProjId, frame: &mut Frame) {
+        let Some(selected) = self.the_list.items.iter().find(|proj| proj.id == proj_id) else {
+            return;
+        };
+
+        let area = frame.size();
+
+        let popup_area = Rect {
+            x: area.width / 4,
+            y: area.height / 3,
+            width: area.width / 2,
+            height: (area.height / 3).max(4),
+        };
+
+        let selected_path = Path::new(selected.path_str.as_ref());
+
+        let root_artifacts = selected.proj.root_artifacts(&selected_path);
+
+        let para = root_artifacts
+            .into_iter()
+            .map(|pb| {
+                pb.strip_prefix(selected_path)
+                    .unwrap_or(&pb)
+                    .to_string_lossy()
+                    .to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let bad_popup = ratatui::widgets::Paragraph::new(para)
+            .wrap(ratatui::widgets::Wrap { trim: true })
+            .style(Style::new().yellow())
+            .block(
+                Block::new()
+                    .title(selected.name.as_ref())
+                    .title_style(Style::new().white().bold())
+                    .borders(Borders::ALL)
+                    .border_style(Style::new().red()),
+            );
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(bad_popup, popup_area);
+    }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::vertical([
+        Constraint::Percentage((100 - percent_y) / 2),
+        Constraint::Percentage(percent_y),
+        Constraint::Percentage((100 - percent_y) / 2),
+    ])
+    .split(r);
+
+    Layout::horizontal([
+        Constraint::Percentage((100 - percent_x) / 2),
+        Constraint::Percentage(percent_x),
+        Constraint::Percentage((100 - percent_x) / 2),
+    ])
+    .split(popup_layout[1])[1]
 }
 
 #[derive(Debug, Default)]
@@ -347,7 +382,7 @@ impl Widget for &mut ProjectList {
 
             // self.table_state.
 
-            let mut path = Text::from(proj.path.as_ref()).dark_gray();
+            let mut path = Text::from(proj.path_str.as_ref()).dark_gray();
 
             if self
                 .table_state
@@ -477,12 +512,14 @@ impl Widget for &mut ProjectList {
 //     }
 // }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct TableEntry {
+    id: ProjId,
     proj: ProjectEnum,
     name: Box<str>,
     focus: Option<Box<str>>,
-    path: Box<str>,
+    path: PathBuf,
+    path_str: Box<str>,
     path_chars: u16,
     artifact_bytes: u64,
     artifact_bytes_fmt: (Box<str>, Box<str>),
@@ -511,6 +548,15 @@ fn main() -> io::Result<()> {
     let rx = kondo_lib::run_local(dirs.into_iter(), None);
     let (ttx, rrx) = kondo_lib::crossbeam::unbounded();
     std::thread::spawn(move || {
+        let mut get_id = {
+            let mut next_id = 0;
+            move || {
+                let id = next_id;
+                next_id += 1;
+                id
+            }
+        };
+
         while let Ok((path, proj)) = rx.recv() {
             let name = proj
                 .name(&path)
@@ -542,15 +588,17 @@ fn main() -> io::Result<()> {
                 }
             }
 
-            let path = path.to_string_lossy().into_owned().into_boxed_str();
+            let path_str = path.to_string_lossy().into_owned().into_boxed_str();
 
-            let path_chars = path.chars().count() as u16;
+            let path_chars = path_str.chars().count() as u16;
 
             let entry = TableEntry {
+                id: get_id(),
                 proj,
                 name,
                 focus,
                 path,
+                path_str,
                 path_chars,
                 artifact_bytes,
                 artifact_bytes_fmt,
@@ -568,8 +616,7 @@ fn main() -> io::Result<()> {
         rx: rrx,
         the_list: ProjectList::default(),
         proj_count: 0,
-        display_help: false,
-        selected: None,
+        state: RuntimeState::ListView,
     };
 
     let app_result = app.run(&mut terminal);
@@ -601,7 +648,7 @@ fn pretty_size(size: u64) -> String {
     format!("{:.1}{}", size, symbol)
 }
 
-fn pretty_size2(size: u64) -> (Box<str>, Box<str>) {
+pub(crate) fn pretty_size2(size: u64) -> (Box<str>, Box<str>) {
     const KIBIBYTE: u64 = 1024;
     const MEBIBYTE: u64 = 1_048_576;
     const GIBIBYTE: u64 = 1_073_741_824;

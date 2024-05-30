@@ -50,20 +50,7 @@ impl ProjectEnum {
     ];
 
     pub fn artifact_size(&self, path: &Path) -> u64 {
-        self.root_artifacts(path)
-            .into_iter()
-            .map(|path| {
-                walkdir::WalkDir::new(path)
-                    .same_file_system(true)
-                    .follow_root_links(false)
-                    .follow_links(false)
-                    .into_iter()
-                    .filter_map(Result::ok)
-                    .filter(|e| e.file_type().is_file())
-                    .filter_map(|e| e.metadata().map(|md| md.len()).ok())
-                    .sum::<u64>()
-            })
-            .sum()
+        self.root_artifacts(path).into_iter().map(dir_size).sum()
     }
 
     pub fn last_modified(&self, path: &Path) -> Result<std::time::SystemTime, std::io::Error> {
@@ -109,6 +96,21 @@ impl ProjectEnum {
 
         Ok(most_recent_modified)
     }
+}
+
+pub fn dir_size<P: AsRef<Path>>(path: P) -> u64 {
+    fn dir_size_inner(path: &Path) -> u64 {
+        walkdir::WalkDir::new(path)
+            .same_file_system(true)
+            .follow_root_links(false)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|e| e.file_type().is_file())
+            .filter_map(|e| e.metadata().map(|md| md.len()).ok())
+            .sum()
+    }
+    dir_size_inner(path.as_ref())
 }
 
 // #[cfg(test)]
