@@ -116,6 +116,10 @@ impl App {
         while let Ok(res) = self.rx.try_recv() {
             self.the_list.biggest_artifact_bytes =
                 self.the_list.biggest_artifact_bytes.max(res.artifact_bytes);
+            if let Some((last_modified, _)) = res.last_modified_secs {
+                self.the_list.oldest_modified_seconds =
+                    self.the_list.oldest_modified_seconds.max(last_modified);
+            }
             self.the_list.items.push(res);
             self.proj_count += 1;
             new_table_entry = true;
@@ -176,6 +180,7 @@ struct ProjectList {
     // list_state: ListState,
     table_state: TableState,
     biggest_artifact_bytes: u64,
+    oldest_modified_seconds: u64,
 }
 
 impl ProjectList {
@@ -238,7 +243,26 @@ impl Widget for &mut ProjectList {
 
         // let items = ["Item 1", "Item 2", "Item 3"];
 
-        let columns = Constraint::from_fills([2, 5, 1, 1, 1]);
+        let columns = {
+            let modified = Constraint::Length(3);
+
+            let kind = Constraint::Length(
+                self.items
+                    .iter()
+                    .map(|i| i.proj.kind_name().len())
+                    .max()
+                    .unwrap_or(4) as u16,
+            );
+
+            vec![
+                Constraint::Fill(4),
+                Constraint::Fill(3),
+                modified,
+                Constraint::Length(7),
+                kind,
+            ]
+        };
+        // std::fs::write("out.txt", format!("{:#?}", columns));
         let column_spacing = 2;
 
         let rects = Layout::horizontal(&columns)
@@ -248,7 +272,8 @@ impl Widget for &mut ProjectList {
 
         let path_column_width = rects[1].width as usize;
 
-        let rows = self.items.iter().chain(self.items.iter()).map(|proj| {
+        // TODO: only render the visible rows
+        let rows = self.items.iter().enumerate().map(|(row_index, proj)| {
             // let name = Text::from(proj.1.name(&proj.0).unwrap_or_default());
 
             // let mut path = proj.0.to_string_lossy().into_owned();
@@ -285,10 +310,20 @@ impl Widget for &mut ProjectList {
                 lerp(dest_start, dest_end, rel)
             }
 
-            let t = (proj.artifact_bytes as f64).sqrt();
-            let rel = inv_lerp(0.0, (self.biggest_artifact_bytes as f64).sqrt(), t);
+            let artifact_size_saturation = {
+                let t = (proj.artifact_bytes as f64).sqrt();
+                let rel = inv_lerp(0.0, (self.biggest_artifact_bytes as f64).sqrt(), t);
+                lerp(20.0, 100.0, rel)
+            };
 
-            let saturation = lerp(20.0, 100.0, rel);
+            let last_modified_saturation = {
+                let t = match proj.last_modified_secs {
+                    Some((m, _)) => m as f64,
+                    None => 0.0,
+                };
+                let rel = inv_lerp(0.0, self.oldest_modified_seconds as f64, t);
+                lerp(20.0, 100.0, rel)
+            };
 
             // let file_size_greenness = remap(
             //     0.0,
@@ -301,12 +336,30 @@ impl Widget for &mut ProjectList {
             // let path = Text::from(path).dark_gray();
             // let kind = Text::from(proj.1.kind_name()).style(proj_colour(proj.1));
 
-            let name = Text::from(proj.name.as_ref());
-            let path = Text::from(proj.path.as_ref()).dark_gray();
+            let name = match &proj.focus {
+                None => Text::from(proj.name.as_ref()),
+                Some(focus) => Text::from(Line::default().spans([
+                    Span::raw(proj.name.as_ref()),
+                    Span::raw(" "),
+                    Span::raw(focus.as_ref()).style(Color::from_hsl(0.0, 0.0, 50.0)),
+                ])),
+            };
+
+            // self.table_state.
+
+            let mut path = Text::from(proj.path.as_ref()).dark_gray();
+
+            if self
+                .table_state
+                .selected()
+                .is_some_and(|selected_idx| selected_idx == row_index)
+            {
+                path = path.gray();
+            }
 
             let last_mod = if let Some(lm) = &proj.last_modified_secs {
                 Text::from(lm.1.as_ref())
-                    .light_blue()
+                    .style(Color::from_hsl(190.0, last_modified_saturation, 60.0))
                     .alignment(Alignment::Right)
             } else {
                 Text::raw("")
@@ -316,19 +369,19 @@ impl Widget for &mut ProjectList {
             //         .map(|lm| lm.1.as_ref())
             //         .unwrap_or(""),
             // );
-            let size = Text::from(
-                Line::default().spans([
-                    Span::raw(proj.artifact_bytes_fmt.0.as_ref())
-                        .bold()
-                        .style(Color::from_hsl(100.0, saturation, 50.0)),
-                    Span::raw(" "),
-                    Span::raw(proj.artifact_bytes_fmt.1.as_ref()).style(Color::from_hsl(
-                        100.0,
-                        saturation - 20.0,
-                        50.0,
-                    )),
-                ]),
-            )
+            let size = Text::from(Line::default().spans([
+                Span::raw(proj.artifact_bytes_fmt.0.as_ref()).style(Color::from_hsl(
+                    100.0,
+                    artifact_size_saturation,
+                    50.0,
+                )),
+                Span::raw(" "),
+                Span::raw(proj.artifact_bytes_fmt.1.as_ref()).style(Color::from_hsl(
+                    100.0,
+                    artifact_size_saturation - 20.0,
+                    50.0,
+                )),
+            ]))
             .alignment(Alignment::Right);
             let kind = Text::from(proj.proj.kind_name()).style(proj_colour(proj.proj));
 
@@ -428,6 +481,7 @@ impl Widget for &mut ProjectList {
 struct TableEntry {
     proj: ProjectEnum,
     name: Box<str>,
+    focus: Option<Box<str>>,
     path: Box<str>,
     path_chars: u16,
     artifact_bytes: u64,
@@ -444,20 +498,17 @@ struct Opt {
 }
 
 fn main() -> io::Result<()> {
-    let mut opt = Opt::parse();
+    let opt = Opt::parse();
 
     let mut terminal = tui::init()?;
 
-    // let cwd = std::env::current_dir().unwrap();
+    let dirs = if !opt.dirs.is_empty() {
+        opt.dirs
+    } else {
+        vec![std::env::current_dir().unwrap()]
+    };
 
-    let rx = kondo_lib::run_local(
-        [
-            PathBuf::from("/Users/choc/code"),
-            // PathBuf::from(cwd)
-        ]
-        .into_iter(),
-        None,
-    );
+    let rx = kondo_lib::run_local(dirs.into_iter(), None);
     let (ttx, rrx) = kondo_lib::crossbeam::unbounded();
     std::thread::spawn(move || {
         while let Ok((path, proj)) = rx.recv() {
@@ -470,6 +521,10 @@ fn main() -> io::Result<()> {
                         .into_owned()
                 })
                 .into_boxed_str();
+
+            let focus = proj
+                .project_focus(&path)
+                .map(|focus| focus.into_boxed_str());
 
             let artifact_bytes = proj.artifact_size(&path);
 
@@ -494,6 +549,7 @@ fn main() -> io::Result<()> {
             let entry = TableEntry {
                 proj,
                 name,
+                focus,
                 path,
                 path_chars,
                 artifact_bytes,

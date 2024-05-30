@@ -18,8 +18,12 @@ use unity::UnityProject;
 #[enum_dispatch(ProjectEnum)]
 pub trait Project {
     fn kind_name(&self) -> &'static str;
-    fn name(&self, root_dir: &Path) -> Option<String>;
     fn is_project(&self, root_dir: &Path) -> bool;
+    fn name(&self, root_dir: &Path) -> Option<String>;
+    #[allow(unused_variables)]
+    fn project_focus(&self, root_dir: &Path) -> Option<String> {
+        None
+    }
     /// Assumes `root_path` is a valid `Project` of the same kind resulting from `Project::is_proejct`
     fn is_root_artifact(&self, root_path: &Path) -> bool;
     /// Assumes `root_dir` is a valid `Project` of the same kind resulting from `Project::is_proejct`

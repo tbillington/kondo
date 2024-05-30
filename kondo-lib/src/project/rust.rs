@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use serde::Deserialize;
 
@@ -16,15 +19,31 @@ impl Project for RustProject {
         "Rust"
     }
 
-    fn name(&self, root_dir: &Path) -> Option<String> {
-        toml::from_str::<CargoToml>(&std::fs::read_to_string(root_dir.join("Cargo.toml")).ok()?)
-            .ok()?
-            .package?
-            .name
-    }
-
     fn is_project(&self, root_dir: &Path) -> bool {
         root_dir.join("Cargo.toml").exists()
+    }
+
+    fn name(&self, root_dir: &Path) -> Option<String> {
+        let manifest = RustProject::manifest(root_dir)?;
+
+        manifest.package?.name
+    }
+
+    fn project_focus(&self, root_dir: &Path) -> Option<String> {
+        let manifest = RustProject::manifest(root_dir)?;
+
+        let bevy = manifest
+            .dependencies
+            .is_some_and(|deps| deps.contains_key("bevy"))
+            || manifest
+                .workspace
+                .is_some_and(|w| w.dependencies.is_some_and(|deps| deps.contains_key("bevy")));
+
+        if bevy {
+            Some("Bevy".to_string())
+        } else {
+            None
+        }
     }
 
     fn is_root_artifact(&self, root_path: &Path) -> bool {
@@ -39,9 +58,23 @@ impl Project for RustProject {
     }
 }
 
+impl RustProject {
+    fn manifest(root_dir: &Path) -> Option<CargoToml> {
+        toml::from_str::<CargoToml>(&std::fs::read_to_string(root_dir.join("Cargo.toml")).ok()?)
+            .ok()
+    }
+}
+
 #[derive(Deserialize)]
 struct CargoToml {
     package: Option<CargoTomlPackage>,
+    dependencies: Option<
+        HashMap<
+            cargo_util_schemas::manifest::PackageName,
+            cargo_util_schemas::manifest::InheritableDependency,
+        >,
+    >,
+    workspace: Option<cargo_util_schemas::manifest::TomlWorkspace>,
 }
 
 #[derive(Deserialize)]
