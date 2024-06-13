@@ -73,6 +73,12 @@ Excellent if
 winget install kondo
 ```
 
+**Scoop**
+```powershell
+scoop bucket add main
+scoop install main/kondo
+```
+
 **Homebrew**
 
 ```sh
