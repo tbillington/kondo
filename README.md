@@ -69,8 +69,14 @@ Excellent if
 ### Command Line
 
 **winget**
-```powershell
+```sh
 winget install kondo
+```
+
+**Scoop**
+```sh
+scoop bucket add main
+scoop install main/kondo
 ```
 
 **Homebrew**
