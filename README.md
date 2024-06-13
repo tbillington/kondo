@@ -69,12 +69,12 @@ Excellent if
 ### Command Line
 
 **winget**
-```powershell
+```sh
 winget install kondo
 ```
 
 **Scoop**
-```powershell
+```sh
 scoop bucket add main
 scoop install main/kondo
 ```
