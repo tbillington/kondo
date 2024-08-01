@@ -27,7 +27,7 @@ const FILE_BUILD_ZIG: &str = "build.zig";
 const FILE_GODOT_4_PROJECT: &str = "project.godot";
 const FILE_CSPROJ_SUFFIX: &str = ".csproj";
 const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
-const FILE_PROJECT_TURBOREPO: &str = "trubo.zig";
+const FILE_PROJECT_TURBOREPO: &str = "turbo.json";
 
 const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
