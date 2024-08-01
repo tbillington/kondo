@@ -27,6 +27,7 @@ const FILE_BUILD_ZIG: &str = "build.zig";
 const FILE_GODOT_4_PROJECT: &str = "project.godot";
 const FILE_CSPROJ_SUFFIX: &str = ".csproj";
 const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
+const FILE_PROJECT_TURBOREPO: &str = "turbo.json";
 
 const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
@@ -75,6 +76,7 @@ const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
 const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
 const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
 const PROJECT_DOTNET_DIRS: [&str; 2] = ["bin", "obj"];
+const PROJECT_TURBOREPO_DIRS: [&str; 1] = [".turbo"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -95,6 +97,7 @@ const PROJECT_SWIFT_NAME: &str = "Swift";
 const PROJECT_ZIG_NAME: &str = "Zig";
 const PROJECT_GODOT_4_NAME: &str = "Godot 4.x";
 const PROJECT_DOTNET_NAME: &str = ".NET";
+const PROJECT_TURBOREPO_NAME: &str = "Turborepo";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -118,6 +121,7 @@ pub enum ProjectType {
     Zig,
     Godot4,
     Dotnet,
+    Turborepo,
 }
 
 #[derive(Debug, Clone)]
@@ -155,6 +159,7 @@ impl Project {
             ProjectType::Zig => &PROJECT_ZIG_DIRS,
             ProjectType::Godot4 => &PROJECT_GODOT_4_DIRS,
             ProjectType::Dotnet => &PROJECT_DOTNET_DIRS,
+            ProjectType::Turborepo => &PROJECT_TURBOREPO_DIRS,
         }
     }
 
@@ -264,6 +269,7 @@ impl Project {
             ProjectType::Zig => PROJECT_ZIG_NAME,
             ProjectType::Godot4 => PROJECT_GODOT_4_NAME,
             ProjectType::Dotnet => PROJECT_DOTNET_NAME,
+            ProjectType::Turborepo => PROJECT_TURBOREPO_NAME,
         }
     }
 
@@ -370,6 +376,7 @@ impl Iterator for ProjectIter {
                     FILE_BUILD_GRADLE_KTS => Some(ProjectType::Gradle),
                     FILE_BUILD_ZIG => Some(ProjectType::Zig),
                     FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
+                    FILE_PROJECT_TURBOREPO => Some(ProjectType::Turborepo),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
