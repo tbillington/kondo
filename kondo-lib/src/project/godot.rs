@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{utils::filter_paths_exist, Project};
+use super::{filter_paths_exist, Project};
 
 #[derive(Debug, Clone, Copy)]
 pub struct GodotProject;

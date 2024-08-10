@@ -7,7 +7,6 @@ pub mod godot;
 pub mod node;
 pub mod rust;
 pub mod unity;
-pub mod utils;
 
 use cmake::CMakeProject;
 use godot::GodotProject;
@@ -111,6 +110,13 @@ pub fn dir_size<P: AsRef<Path>>(path: P) -> u64 {
             .sum()
     }
     dir_size_inner(path.as_ref())
+}
+
+fn filter_paths_exist<'a>(root: &'a Path, paths: &'a [&str]) -> impl Iterator<Item = PathBuf> + 'a {
+    paths.iter().filter_map(|p| {
+        let path = root.join(p);
+        path.exists().then_some(path)
+    })
 }
 
 // #[cfg(test)]

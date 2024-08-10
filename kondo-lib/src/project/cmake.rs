@@ -18,9 +18,7 @@ use std::path::{Path, PathBuf};
 
 use cmake_parser::{parse_cmakelists, Command, Doc};
 
-use crate::Project;
-
-use super::utils::filter_paths_exist;
+use super::{filter_paths_exist, Project};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CMakeProject;

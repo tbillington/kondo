@@ -2,9 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::project::utils::filter_paths_exist;
-
-use super::Project;
+use super::{filter_paths_exist, Project};
 
 #[derive(Debug, Clone, Copy)]
 pub struct NodeProject;
