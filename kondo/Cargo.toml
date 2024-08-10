@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
-crossterm = "0.27.0"
+clap = { version = "4.5", features = ["derive"] }
 kondo-lib = { workspace = true }
-ratatui = { version = "0.26.2" }
+ratatui = { version = "0.28" }

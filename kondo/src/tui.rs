@@ -1,8 +1,10 @@
-use crossterm::{
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
+use ratatui::{
+    crossterm::{
+        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+        ExecutableCommand as _,
+    },
+    prelude::*,
 };
-use ratatui::prelude::*;
 use std::io::{self, stdout, Stdout};
 
 /// A type alias for the terminal type used in this application

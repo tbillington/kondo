@@ -4,7 +4,7 @@ version = "0.9.0"
 edition = "2021"
 
 [dependencies]
-cargo-util-schemas = "0.3.0"
+cargo-util-schemas = "0.4.0"
 cmake-parser = "0.1.0-alpha.1"
 crossbeam-channel = "0.5"
 crossbeam-deque = "0.8"

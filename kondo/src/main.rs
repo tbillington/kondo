@@ -1,7 +1,7 @@
 use clap::{command, Parser};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use kondo_lib::{crossbeam::Receiver, Project, ProjectEnum};
 use ratatui::{
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     prelude::*,
     widgets::{
         block::{Position, Title},
