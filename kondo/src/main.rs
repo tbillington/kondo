@@ -49,7 +49,7 @@ impl App {
     }
 
     fn render_frame(&mut self, frame: &mut Frame) {
-        let area = frame.size();
+        let area = frame.area();
 
         frame.render_widget(&mut self.the_list, area);
 
@@ -144,7 +144,7 @@ impl App {
 
     fn render_help(&self, frame: &mut Frame) {
         let block = Block::default().title("Popup").borders(Borders::ALL);
-        let area = centered_rect(60, 20, frame.size());
+        let area = centered_rect(60, 20, frame.area());
         frame.render_widget(Clear, area); //this clears out the background
         frame.render_widget(block, area);
     }
@@ -154,7 +154,7 @@ impl App {
             return;
         };
 
-        let area = frame.size();
+        let area = frame.area();
 
         let popup_area = Rect {
             x: area.width / 4,
@@ -165,7 +165,7 @@ impl App {
 
         let selected_path = Path::new(selected.path_str.as_ref());
 
-        let root_artifacts = selected.proj.root_artifacts(&selected_path);
+        let root_artifacts = selected.proj.root_artifacts(selected_path);
 
         let para = root_artifacts
             .into_iter()

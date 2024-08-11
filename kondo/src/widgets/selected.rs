@@ -1,7 +1,4 @@
-use std::{
-    path::Path,
-    sync::mpsc::{sync_channel, Receiver, TryRecvError},
-};
+use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 
 use kondo_lib::{project::dir_size, Project as _};
 use ratatui::{
@@ -73,7 +70,7 @@ impl SelectedProject {
         }
 
         let selected = proj;
-        let area = frame.size();
+        let area = frame.area();
 
         let popup_area = Rect {
             x: area.width / 4,
