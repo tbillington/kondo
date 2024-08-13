@@ -13,7 +13,7 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
-use widgets::selected::SelectedProject;
+use widgets::{project_list::ProjectList, selected::SelectedProject};
 
 mod tui;
 mod widgets;
@@ -23,15 +23,29 @@ pub(crate) type ProjId = u32;
 #[derive(Debug)]
 struct App {
     exit: bool,
-    the_list: ProjectList,
+    main_project_list: ProjectList,
     rx: Receiver<TableEntry>,
     proj_count: u32,
     state: RuntimeState,
+    show_empty: bool,
+}
+
+impl App {
+    fn new(rx: Receiver<TableEntry>) -> Self {
+        Self {
+            exit: false,
+            rx,
+            main_project_list: ProjectList::default(),
+            proj_count: 0,
+            state: RuntimeState::MainListView,
+            show_empty: false,
+        }
+    }
 }
 
 #[derive(Debug)]
 enum RuntimeState {
-    ListView,
+    MainListView,
     DisplayHelp,
     Selected(SelectedProject),
 }
@@ -39,7 +53,6 @@ enum RuntimeState {
 const EVENT_POLL_DURATION: Duration = Duration::from_millis(16);
 
 impl App {
-    /// runs the application's main loop until the user quits
     pub fn run(&mut self, terminal: &mut tui::Tui) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.render_frame(frame))?;
@@ -51,25 +64,26 @@ impl App {
     fn render_frame(&mut self, frame: &mut Frame) {
         let area = frame.area();
 
-        frame.render_widget(&mut self.the_list, area);
+        frame.render_widget(&mut self.main_project_list, area);
 
         if matches!(self.state, RuntimeState::DisplayHelp) {
             self.render_help(frame);
         }
 
         if let RuntimeState::Selected(selected_proj) = &mut self.state {
+            // TODO: something better than linear scan?
             if let Some(table_entry) = self
-                .the_list
+                .main_project_list
                 .items
                 .iter()
                 .find(|i| i.id == selected_proj.id)
             {
                 let result = selected_proj.render(frame, table_entry);
                 if matches!(result, widgets::selected::SelectedWidgetResult::Finished) {
-                    self.state = RuntimeState::ListView;
+                    self.state = RuntimeState::MainListView;
                 }
             } else {
-                self.state = RuntimeState::ListView;
+                self.state = RuntimeState::MainListView;
             }
         }
     }
@@ -77,18 +91,22 @@ impl App {
     fn handle_events(&mut self) -> io::Result<()> {
         let mut new_table_entry = false;
         while let Ok(res) = self.rx.try_recv() {
-            self.the_list.biggest_artifact_bytes =
-                self.the_list.biggest_artifact_bytes.max(res.artifact_bytes);
+            self.main_project_list.biggest_artifact_bytes = self
+                .main_project_list
+                .biggest_artifact_bytes
+                .max(res.artifact_bytes);
             if let Some((last_modified, _)) = res.last_modified_secs {
-                self.the_list.oldest_modified_seconds =
-                    self.the_list.oldest_modified_seconds.max(last_modified);
+                self.main_project_list.oldest_modified_seconds = self
+                    .main_project_list
+                    .oldest_modified_seconds
+                    .max(last_modified);
             }
-            self.the_list.items.push(res);
+            self.main_project_list.items.push(res);
             self.proj_count += 1;
             new_table_entry = true;
         }
         if new_table_entry {
-            self.the_list
+            self.main_project_list
                 .items
                 .sort_unstable_by(|a, b| b.artifact_bytes.cmp(&a.artifact_bytes));
         }
@@ -110,19 +128,29 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
+        match self.state {
+            RuntimeState::MainListView => {
+                match self.main_project_list.handle_key_event(key_event) {
+                    widgets::project_list::ProjectListHandleKeyOutcome::Quit => todo!(),
+                    widgets::project_list::ProjectListHandleKeyOutcome::Unused => todo!(),
+                }
+            }
+            RuntimeState::DisplayHelp => todo!(),
+            RuntimeState::Selected(_) => todo!(),
+        }
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Esc => match self.state {
-                RuntimeState::ListView => self.exit(),
-                _ => self.state = RuntimeState::ListView,
+                RuntimeState::MainListView => self.exit(),
+                _ => self.state = RuntimeState::MainListView,
             },
             // KeyCode::Left | KeyCode::Char('h') => self.decrement_counter(),
             // KeyCode::Right | KeyCode::Char('l') => self.increment_counter(),
-            KeyCode::Down | KeyCode::Char('j') => self.the_list.key_down_arrow(),
-            KeyCode::Up | KeyCode::Char('k') => self.the_list.key_up_arrow(),
+            KeyCode::Down | KeyCode::Char('j') => self.main_project_list.key_down_arrow(),
+            KeyCode::Up | KeyCode::Char('k') => self.main_project_list.key_up_arrow(),
             KeyCode::Char('?') => self.toggle_help(),
             KeyCode::Enter => {
-                if let Some(selected_idx) = self.the_list.table_state.selected() {
-                    if let Some(selected_item) = self.the_list.items.get(selected_idx) {
+                if let Some(selected_idx) = self.main_project_list.table_state.selected() {
+                    if let Some(selected_item) = self.main_project_list.items.get(selected_idx) {
                         self.state = RuntimeState::Selected(SelectedProject::new(selected_item));
                     }
                 }
@@ -133,7 +161,7 @@ impl App {
 
     fn toggle_help(&mut self) {
         self.state = match self.state {
-            RuntimeState::DisplayHelp => RuntimeState::ListView,
+            RuntimeState::DisplayHelp => RuntimeState::MainListView,
             _ => RuntimeState::DisplayHelp,
         };
     }
@@ -150,7 +178,12 @@ impl App {
     }
 
     fn render_selected(&self, proj_id: ProjId, frame: &mut Frame) {
-        let Some(selected) = self.the_list.items.iter().find(|proj| proj.id == proj_id) else {
+        let Some(selected) = self
+            .main_project_list
+            .items
+            .iter()
+            .find(|proj| proj.id == proj_id)
+        else {
             return;
         };
 
@@ -207,263 +240,6 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         Constraint::Percentage((100 - percent_x) / 2),
     ])
     .split(popup_layout[1])[1]
-}
-
-#[derive(Debug, Default)]
-struct ProjectList {
-    items: Vec<TableEntry>,
-    // list_state: ListState,
-    table_state: TableState,
-    biggest_artifact_bytes: u64,
-    oldest_modified_seconds: u64,
-}
-
-impl ProjectList {
-    fn key_down_arrow(&mut self) {
-        if self.items.is_empty() {
-            self.table_state.select(None);
-            return;
-        }
-
-        match self.table_state.selected() {
-            Some(idx) => self
-                .table_state
-                .select(Some((idx + 1).min(self.items.len() - 1))),
-            None => self.table_state.select(Some(0)),
-        }
-    }
-
-    fn key_up_arrow(&mut self) {
-        if self.items.is_empty() {
-            self.table_state.select(None);
-            return;
-        }
-
-        match self.table_state.selected() {
-            Some(idx) => self.table_state.select(Some(idx.saturating_sub(1))),
-            None => self.table_state.select(Some(0)),
-        }
-    }
-}
-
-impl Widget for &mut ProjectList {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        // let title = Title::from(" Kondo 🧹 ".bold());
-        let instructions = Title::from(
-            Line::from(vec![
-                "[".into(),
-                "?".bold(),
-                "]".into(),
-                "elp".bold(),
-                " ".into(),
-                // "<Q> ".blue().bold(),
-            ])
-            .yellow(),
-        );
-        let block = Block::default()
-        //     .title(title.alignment(Alignment::Center))
-            .title(
-                instructions
-                    .alignment(Alignment::Center)
-                    .position(Position::Bottom),
-            )
-        //     // .borders(Borders::TOP.union(Borders::BOTTOM))
-        //     // .border_set(border::ROUNDED)
-            ;
-
-        // let counter_text = Text::from(vec![Line::from(vec![
-        //     "Value: ".into(),
-        //     self.counter.to_string().yellow(),
-        // ])]);
-
-        // let items = ["Item 1", "Item 2", "Item 3"];
-
-        let columns = {
-            let modified = Constraint::Length(3);
-
-            let kind = Constraint::Length(
-                self.items
-                    .iter()
-                    .map(|i| i.proj.kind_name().len())
-                    .max()
-                    .unwrap_or(4) as u16,
-            );
-
-            vec![
-                Constraint::Fill(4),
-                Constraint::Fill(3),
-                modified,
-                Constraint::Length(7),
-                kind,
-            ]
-        };
-        // std::fs::write("out.txt", format!("{:#?}", columns));
-        let column_spacing = 2;
-
-        let rects = Layout::horizontal(&columns)
-            // .constraints(&)
-            .spacing(column_spacing)
-            .split(area);
-
-        let path_column_width = rects[1].width as usize;
-
-        // TODO: only render the visible rows
-        let rows = self.items.iter().enumerate().map(|(row_index, proj)| {
-            // let name = Text::from(proj.1.name(&proj.0).unwrap_or_default());
-
-            // let mut path = proj.0.to_string_lossy().into_owned();
-
-            // let char_count = path.chars().count();
-
-            // if char_count > path_column_width {
-            //     path = path
-            //         .chars()
-            //         .skip(char_count - path_column_width)
-            //         .take(path_column_width)
-            //         .collect();
-            // }
-
-            fn proj_colour(proj: ProjectEnum) -> Color {
-                // https://github.com/ozh/github-colors/blob/master/colors.json
-                match proj {
-                    ProjectEnum::CMakeProject(_) => Color::from_u32(0xda3434),
-                    ProjectEnum::NodeProject(_) => Color::from_u32(0xf1e05a),
-                    ProjectEnum::RustProject(_) => Color::from_u32(0xdea584),
-                    ProjectEnum::UnityProject(_) => Color::from_u32(0x178600),
-                    ProjectEnum::GodotProject(_) => Color::from_u32(0x355570),
-                }
-            }
-
-            fn lerp(start: f64, end: f64, t: f64) -> f64 {
-                ((1.0 - t) * start) + (t * end)
-            }
-            fn inv_lerp(start: f64, end: f64, t: f64) -> f64 {
-                (t - start) / (end - start)
-            }
-            fn remap(src_start: f64, src_end: f64, dest_start: f64, dest_end: f64, t: f64) -> f64 {
-                let rel = inv_lerp(src_start, src_end, t);
-                lerp(dest_start, dest_end, rel)
-            }
-
-            let artifact_size_saturation = {
-                let t = (proj.artifact_bytes as f64).sqrt();
-                let rel = inv_lerp(0.0, (self.biggest_artifact_bytes as f64).sqrt(), t);
-                lerp(20.0, 100.0, rel)
-            };
-
-            let last_modified_saturation = {
-                let t = match proj.last_modified_secs {
-                    Some((m, _)) => m as f64,
-                    None => 0.0,
-                };
-                let rel = inv_lerp(0.0, self.oldest_modified_seconds as f64, t);
-                lerp(20.0, 100.0, rel)
-            };
-
-            // let file_size_greenness = remap(
-            //     0.0,
-            //     (self.biggest_artifact_bytes as f64).sqrt(),
-            //     0.2,
-            //     100.0,
-            //     (proj.artifact_bytes as f64).sqrt(),
-            // );
-
-            // let path = Text::from(path).dark_gray();
-            // let kind = Text::from(proj.1.kind_name()).style(proj_colour(proj.1));
-
-            let name = match &proj.focus {
-                None => Text::from(proj.name.as_ref()),
-                Some(focus) => Text::from(Line::default().spans([
-                    Span::raw(proj.name.as_ref()),
-                    Span::raw(" "),
-                    Span::raw(focus.as_ref()).style(Color::from_hsl(0.0, 0.0, 50.0)),
-                ])),
-            };
-
-            // self.table_state.
-
-            let mut path = Text::from(proj.path_str.as_ref()).dark_gray();
-
-            if self
-                .table_state
-                .selected()
-                .is_some_and(|selected_idx| selected_idx == row_index)
-            {
-                path = path.gray();
-            }
-
-            let last_mod = if let Some(lm) = &proj.last_modified_secs {
-                Text::from(lm.1.as_ref())
-                    .style(Color::from_hsl(190.0, last_modified_saturation, 60.0))
-                    .alignment(Alignment::Right)
-            } else {
-                Text::raw("")
-            };
-            //  Text::from(
-            //     proj.last_modified_secs
-            //         .map(|lm| lm.1.as_ref())
-            //         .unwrap_or(""),
-            // );
-            let size = Text::from(Line::default().spans([
-                Span::raw(proj.artifact_bytes_fmt.0.as_ref()).style(Color::from_hsl(
-                    100.0,
-                    artifact_size_saturation,
-                    50.0,
-                )),
-                Span::raw(" "),
-                Span::raw(proj.artifact_bytes_fmt.1.as_ref()).style(Color::from_hsl(
-                    100.0,
-                    artifact_size_saturation - 20.0,
-                    50.0,
-                )),
-            ]))
-            .alignment(Alignment::Right);
-            let kind = Text::from(proj.proj.kind_name()).style(proj_colour(proj.proj));
-
-            Row::new(vec![name, path, last_mod, size, kind])
-        });
-
-        let table = Table::new(rows, columns)
-            .header(
-                Row::new(vec![
-                    Cell::new("Project"),
-                    Cell::new("Path"),
-                    Cell::new("Mod"),
-                    Cell::new("Size"),
-                    Cell::new("Type"),
-                ])
-                .underlined()
-                .light_blue()
-                .bold(),
-            )
-            .column_spacing(column_spacing)
-            .block(block)
-            .highlight_style(
-                Style::default()
-                    .add_modifier(Modifier::BOLD)
-                    .bg(Color::DarkGray),
-            );
-
-        ratatui::widgets::StatefulWidget::render(table, area, buf, &mut self.table_state);
-
-        // let l = self
-        //     .items
-        //     .iter()
-        //     .map(|i| Text::from(i.1.name(&i.0).unwrap_or_else(|| "Unknown".to_string())))
-        //     .collect::<List>()
-        //     .block(block)
-        //     .highlight_style(
-        //         Style::default()
-        //             .add_modifier(Modifier::BOLD)
-        //             .bg(Color::DarkGray),
-        //     )
-        //     // .highlight_symbol(">")
-        //     .repeat_highlight_symbol(true);
-
-        // ratatui::widgets::StatefulWidget::render(&l, area, buf, &mut self.list_state);
-        // area,
-        // buf,
-    }
 }
 
 // impl Widget for &App {
@@ -611,13 +387,7 @@ fn main() -> io::Result<()> {
         }
     });
 
-    let mut app = App {
-        exit: false,
-        rx: rrx,
-        the_list: ProjectList::default(),
-        proj_count: 0,
-        state: RuntimeState::ListView,
-    };
+    let mut app = App::new(rrx);
 
     let app_result = app.run(&mut terminal);
     tui::restore()?;
