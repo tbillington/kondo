@@ -81,6 +81,12 @@ winget install kondo
 brew install kondo
 ```
 
+**MacPorts**
+
+```sh
+sudo port install kondo
+```
+
 **Arch Linux**
 
 ```sh
