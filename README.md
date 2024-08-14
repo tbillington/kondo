@@ -106,6 +106,13 @@ Binaries available on the [releases page](https://github.com/tbillington/kondo/r
 
 ### Graphic User Interface
 
+**Windows**
+
+```powershell
+winget install kondo-ui
+```
+
+
 **Arch Linux**
 
 ```sh
