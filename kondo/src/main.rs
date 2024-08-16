@@ -131,8 +131,8 @@ impl App {
         match self.state {
             RuntimeState::MainListView => {
                 match self.main_project_list.handle_key_event(key_event) {
-                    widgets::project_list::ProjectListHandleKeyOutcome::Quit => todo!(),
-                    widgets::project_list::ProjectListHandleKeyOutcome::Unused => todo!(),
+                    widgets::project_list::ProjectListHandleKeyOutcome::Quit => self.exit(),
+                    widgets::project_list::ProjectListHandleKeyOutcome::Unused => {}
                 }
             }
             RuntimeState::DisplayHelp => todo!(),

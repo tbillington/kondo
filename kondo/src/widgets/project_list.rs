@@ -1,6 +1,6 @@
 use kondo_lib::{Project as _, ProjectEnum};
 use ratatui::{
-    crossterm::event::KeyEvent,
+    crossterm::event::{KeyCode, KeyEvent},
     prelude::*,
     widgets::{block::Title, Block, Cell, Row, Table, TableState},
 };
@@ -49,7 +49,10 @@ impl ProjectList {
     }
 
     pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) -> ProjectListHandleKeyOutcome {
-        ProjectListHandleKeyOutcome::Unused
+        match key_event.code {
+            KeyCode::Char('q') | KeyCode::Esc => ProjectListHandleKeyOutcome::Unused,
+            _ => ProjectListHandleKeyOutcome::Unused,
+        }
     }
 }
 
