@@ -7,9 +7,13 @@ use ratatui::{
 
 use crate::TableEntry;
 
+use super::selected::SelectedProject;
+
 pub(crate) enum ProjectListHandleKeyOutcome {
     Quit,
     Unused,
+    Consumed,
+    Select(SelectedProject),
 }
 
 #[derive(Debug, Default)]
@@ -50,7 +54,26 @@ impl ProjectList {
 
     pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) -> ProjectListHandleKeyOutcome {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc => ProjectListHandleKeyOutcome::Unused,
+            KeyCode::Char('q') | KeyCode::Esc => ProjectListHandleKeyOutcome::Quit,
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.key_down_arrow();
+                ProjectListHandleKeyOutcome::Consumed
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.key_up_arrow();
+                ProjectListHandleKeyOutcome::Consumed
+            }
+            KeyCode::Enter => {
+                if let Some(selected_idx) = self.table_state.selected() {
+                    if let Some(selected_item) = self.items.get(selected_idx) {
+                        return ProjectListHandleKeyOutcome::Select(SelectedProject::new(
+                            selected_item,
+                        ));
+                    }
+                }
+                // log error?
+                ProjectListHandleKeyOutcome::Consumed
+            }
             _ => ProjectListHandleKeyOutcome::Unused,
         }
     }

@@ -2,6 +2,7 @@ use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 
 use kondo_lib::{project::dir_size, Project as _};
 use ratatui::{
+    crossterm::event::{KeyCode, KeyEvent},
     prelude::*,
     widgets::{Block, Borders, Clear, List, Paragraph},
 };
@@ -24,6 +25,11 @@ enum State {
 pub(crate) enum SelectedWidgetResult {
     Okay,
     Finished,
+}
+
+pub(crate) enum SelectedProjectHandleKeyOutcome {
+    Quit,
+    Unused,
 }
 
 impl SelectedProject {
@@ -133,6 +139,16 @@ impl SelectedProject {
         }
 
         SelectedWidgetResult::Okay
+    }
+
+    pub(crate) fn handle_key_event(
+        &mut self,
+        key_event: KeyEvent,
+    ) -> SelectedProjectHandleKeyOutcome {
+        match key_event.code {
+            KeyCode::Char('q') | KeyCode::Esc => SelectedProjectHandleKeyOutcome::Quit,
+            _ => SelectedProjectHandleKeyOutcome::Unused,
+        }
     }
 }
 

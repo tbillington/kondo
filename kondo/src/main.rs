@@ -133,11 +133,21 @@ impl App {
                 match self.main_project_list.handle_key_event(key_event) {
                     widgets::project_list::ProjectListHandleKeyOutcome::Quit => self.exit(),
                     widgets::project_list::ProjectListHandleKeyOutcome::Unused => {}
+                    widgets::project_list::ProjectListHandleKeyOutcome::Consumed => {}
+                    widgets::project_list::ProjectListHandleKeyOutcome::Select(selected) => {
+                        self.state = RuntimeState::Selected(selected)
+                    }
                 }
             }
             RuntimeState::DisplayHelp => todo!(),
-            RuntimeState::Selected(_) => todo!(),
+            RuntimeState::Selected(ref mut sp) => match sp.handle_key_event(key_event) {
+                widgets::selected::SelectedProjectHandleKeyOutcome::Quit => {
+                    self.state = RuntimeState::MainListView
+                }
+                widgets::selected::SelectedProjectHandleKeyOutcome::Unused => {}
+            },
         }
+        return;
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Esc => match self.state {
                 RuntimeState::MainListView => self.exit(),
