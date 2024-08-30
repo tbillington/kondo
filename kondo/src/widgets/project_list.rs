@@ -1,11 +1,17 @@
-use kondo_lib::{Project as _, ProjectEnum};
+use std::path::PathBuf;
+
+use kondo_lib::{crossbeam::Receiver, Project as _, ProjectEnum};
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::{Event, KeyCode, KeyEvent},
     prelude::*,
     widgets::{block::Title, Block, Cell, Row, Table, TableState},
 };
 
-use crate::TableEntry;
+use crate::{
+    component::{Action, Component},
+    discovery::discover,
+    TableEntry,
+};
 
 use super::selected::SelectedProject;
 
@@ -16,13 +22,27 @@ pub(crate) enum ProjectListHandleKeyOutcome {
     Select(SelectedProject),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct ProjectList {
     pub(crate) items: Vec<TableEntry>,
-    // list_state: ListState,
+    pub(crate) item_rx: Receiver<TableEntry>,
+    pub(crate) proj_count: u32,
     pub(crate) table_state: TableState,
     pub(crate) biggest_artifact_bytes: u64,
     pub(crate) oldest_modified_seconds: u64,
+}
+
+impl ProjectList {
+    pub(crate) fn new(paths: Vec<PathBuf>) -> Self {
+        Self {
+            item_rx: discover(paths),
+            items: Default::default(),
+            proj_count: Default::default(),
+            table_state: Default::default(),
+            biggest_artifact_bytes: Default::default(),
+            oldest_modified_seconds: Default::default(),
+        }
+    }
 }
 
 impl ProjectList {
@@ -52,64 +72,104 @@ impl ProjectList {
         }
     }
 
-    pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) -> ProjectListHandleKeyOutcome {
-        match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc => ProjectListHandleKeyOutcome::Quit,
+    // pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) -> ProjectListHandleKeyOutcome {
+    //     match key_event.code {
+    //         KeyCode::Char('q') | KeyCode::Esc => ProjectListHandleKeyOutcome::Quit,
+    //         KeyCode::Down | KeyCode::Char('j') => {
+    //             self.key_down_arrow();
+    //             ProjectListHandleKeyOutcome::Consumed
+    //         }
+    //         KeyCode::Up | KeyCode::Char('k') => {
+    //             self.key_up_arrow();
+    //             ProjectListHandleKeyOutcome::Consumed
+    //         }
+    //         KeyCode::Enter => {
+    //             if let Some(selected_idx) = self.table_state.selected() {
+    //                 if let Some(selected_item) = self.items.get(selected_idx) {
+    //                     return ProjectListHandleKeyOutcome::Select(SelectedProject::new(
+    //                         selected_item,
+    //                     ));
+    //                 }
+    //             }
+    //             // log error?
+    //             ProjectListHandleKeyOutcome::Consumed
+    //         }
+    //         _ => ProjectListHandleKeyOutcome::Unused,
+    //     }
+    // }
+}
+
+impl Component for ProjectList {
+    fn handle_events(
+        &mut self,
+        event: Option<ratatui::crossterm::event::Event>,
+    ) -> crate::component::Action {
+        match event {
+            // Some(Event::Quit) => Action::Quit,
+            // Some(Event::Tick) => Action::Tick,
+            Some(Event::Key(key_event)) => self.handle_key_events(key_event),
+            Some(Event::Mouse(mouse_event)) => self.handle_mouse_events(mouse_event),
+            // Some(Event::Resize(x, y)) => Action::Resize(x, y),
+            Some(_) => Action::Noop,
+            None => Action::Noop,
+        }
+    }
+
+    fn handle_key_events(&mut self, key: KeyEvent) -> Action {
+        match key.code {
+            KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
             KeyCode::Down | KeyCode::Char('j') => {
                 self.key_down_arrow();
-                ProjectListHandleKeyOutcome::Consumed
+                Action::Consumed
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 self.key_up_arrow();
-                ProjectListHandleKeyOutcome::Consumed
+                Action::Consumed
             }
             KeyCode::Enter => {
                 if let Some(selected_idx) = self.table_state.selected() {
                     if let Some(selected_item) = self.items.get(selected_idx) {
-                        return ProjectListHandleKeyOutcome::Select(SelectedProject::new(
-                            selected_item,
-                        ));
+                        return Action::Push(Box::new(SelectedProject::new(selected_item)));
                     }
                 }
                 // log error?
-                ProjectListHandleKeyOutcome::Consumed
+                Action::Consumed
             }
-            _ => ProjectListHandleKeyOutcome::Unused,
+            _ => Action::Noop,
         }
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer) {
+        Widget::render(self, area, buf);
     }
 }
 
 impl Widget for &mut ProjectList {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        // let title = Title::from(" Kondo 🧹 ".bold());
+        // eww why is this in render. in handle_events means it doesn't get called if there isn't a keypress etc
+        let mut new_table_entry = false;
+        while let Ok(res) = self.item_rx.try_recv() {
+            self.biggest_artifact_bytes = self.biggest_artifact_bytes.max(res.artifact_bytes);
+            if let Some((last_modified, _)) = res.last_modified_secs {
+                self.oldest_modified_seconds = self.oldest_modified_seconds.max(last_modified);
+            }
+            self.items.push(res);
+            self.proj_count += 1;
+            new_table_entry = true;
+        }
+        if new_table_entry {
+            self.items
+                .sort_unstable_by(|a, b| b.artifact_bytes.cmp(&a.artifact_bytes));
+        }
+
         let instructions = Title::from(
-            Line::from(vec![
-                "[".into(),
-                "?".bold(),
-                "]".into(),
-                "elp".bold(),
-                " ".into(),
-                // "<Q> ".blue().bold(),
-            ])
-            .yellow(),
+            Line::from(vec!["[".into(), "?".bold(), "]".into(), "elp".bold()]).yellow(),
         );
-        let block = Block::default()
-        //     .title(title.alignment(Alignment::Center))
-            .title(
-                instructions
-                    .alignment(Alignment::Center)
-                    .position(ratatui::widgets::block::Position::Bottom),
-            )
-        //     // .borders(Borders::TOP.union(Borders::BOTTOM))
-        //     // .border_set(border::ROUNDED)
-            ;
-
-        // let counter_text = Text::from(vec![Line::from(vec![
-        //     "Value: ".into(),
-        //     self.counter.to_string().yellow(),
-        // ])]);
-
-        // let items = ["Item 1", "Item 2", "Item 3"];
+        let block = Block::default().title(
+            instructions
+                .alignment(Alignment::Center)
+                .position(ratatui::widgets::block::Position::Bottom),
+        );
 
         let columns = {
             let modified = Constraint::Length(3);
@@ -130,32 +190,16 @@ impl Widget for &mut ProjectList {
                 kind,
             ]
         };
-        // std::fs::write("out.txt", format!("{:#?}", columns));
         let column_spacing = 2;
 
-        let rects = Layout::horizontal(&columns)
-            // .constraints(&)
-            .spacing(column_spacing)
-            .split(area);
+        // let rects = Layout::horizontal(&columns)
+        //     .spacing(column_spacing)
+        //     .split(area);
 
-        let path_column_width = rects[1].width as usize;
+        // let path_column_width = rects[1].width as usize;
 
         // TODO: only render the visible rows
         let rows = self.items.iter().enumerate().map(|(row_index, proj)| {
-            // let name = Text::from(proj.1.name(&proj.0).unwrap_or_default());
-
-            // let mut path = proj.0.to_string_lossy().into_owned();
-
-            // let char_count = path.chars().count();
-
-            // if char_count > path_column_width {
-            //     path = path
-            //         .chars()
-            //         .skip(char_count - path_column_width)
-            //         .take(path_column_width)
-            //         .collect();
-            // }
-
             fn proj_colour(proj: ProjectEnum) -> Color {
                 // https://github.com/ozh/github-colors/blob/master/colors.json
                 match proj {
@@ -194,17 +238,6 @@ impl Widget for &mut ProjectList {
                 lerp(20.0, 100.0, rel)
             };
 
-            // let file_size_greenness = remap(
-            //     0.0,
-            //     (self.biggest_artifact_bytes as f64).sqrt(),
-            //     0.2,
-            //     100.0,
-            //     (proj.artifact_bytes as f64).sqrt(),
-            // );
-
-            // let path = Text::from(path).dark_gray();
-            // let kind = Text::from(proj.1.kind_name()).style(proj_colour(proj.1));
-
             let name = match &proj.focus {
                 None => Text::from(proj.name.as_ref()),
                 Some(focus) => Text::from(Line::default().spans([
@@ -213,8 +246,6 @@ impl Widget for &mut ProjectList {
                     Span::raw(focus.as_ref()).style(Color::from_hsl(0.0, 0.0, 50.0)),
                 ])),
             };
-
-            // self.table_state.
 
             let mut path = Text::from(proj.path_str.as_ref()).dark_gray();
 
@@ -233,11 +264,6 @@ impl Widget for &mut ProjectList {
             } else {
                 Text::raw("")
             };
-            //  Text::from(
-            //     proj.last_modified_secs
-            //         .map(|lm| lm.1.as_ref())
-            //         .unwrap_or(""),
-            // );
             let size = Text::from(Line::default().spans([
                 Span::raw(proj.artifact_bytes_fmt.0.as_ref()).style(Color::from_hsl(
                     100.0,
@@ -279,23 +305,5 @@ impl Widget for &mut ProjectList {
             );
 
         ratatui::widgets::StatefulWidget::render(table, area, buf, &mut self.table_state);
-
-        // let l = self
-        //     .items
-        //     .iter()
-        //     .map(|i| Text::from(i.1.name(&i.0).unwrap_or_else(|| "Unknown".to_string())))
-        //     .collect::<List>()
-        //     .block(block)
-        //     .highlight_style(
-        //         Style::default()
-        //             .add_modifier(Modifier::BOLD)
-        //             .bg(Color::DarkGray),
-        //     )
-        //     // .highlight_symbol(">")
-        //     .repeat_highlight_symbol(true);
-
-        // ratatui::widgets::StatefulWidget::render(&l, area, buf, &mut self.list_state);
-        // area,
-        // buf,
     }
 }

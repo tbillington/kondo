@@ -2,17 +2,18 @@ use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 
 use kondo_lib::{project::dir_size, Project as _};
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::{Event, KeyCode, KeyEvent, MouseEvent},
     prelude::*,
     widgets::{Block, Borders, Clear, List, Paragraph},
 };
 
-use crate::{pretty_size2, ProjId, TableEntry};
+use crate::{component::Component, pretty_size2, ProjId, TableEntry};
 
 #[derive(Debug)]
 pub(crate) struct SelectedProject {
     pub(crate) id: ProjId,
     state: State,
+    table_entry: TableEntry,
 }
 
 #[derive(Debug)]
@@ -57,10 +58,14 @@ impl SelectedProject {
 
         let id = proj.id;
         let state = State::FetchingArtifactSizes(rx);
-        SelectedProject { id, state }
+        SelectedProject {
+            id,
+            state,
+            table_entry: proj.clone(),
+        }
     }
 
-    pub(crate) fn render(&mut self, frame: &mut Frame, proj: &TableEntry) -> SelectedWidgetResult {
+    pub(crate) fn render(&mut self, area: Rect, buf: &mut Buffer) -> SelectedWidgetResult {
         if let State::FetchingArtifactSizes(rx) = &self.state {
             match rx.try_recv() {
                 Ok(artifact_info) => self.state = State::Cleanable(artifact_info),
@@ -68,15 +73,14 @@ impl SelectedProject {
                 Err(TryRecvError::Disconnected) => {
                     eprintln!(
                         "expected artifact sizes but sender disconnected, proj: {}",
-                        proj.path_str
+                        self.table_entry.path_str
                     );
                     return SelectedWidgetResult::Finished;
                 }
             }
         }
 
-        let selected = proj;
-        let area = frame.area();
+        let selected = &self.table_entry;
 
         let popup_area = Rect {
             x: area.width / 4,
@@ -97,8 +101,10 @@ impl SelectedProject {
                             .borders(Borders::ALL)
                             .border_style(Style::new().red()),
                     );
-                frame.render_widget(Clear, popup_area);
-                frame.render_widget(popup, popup_area);
+                Clear.render(area, buf);
+                // buf.render_widget(Clear, popup_area);
+                popup.render(area, buf);
+                // frame.render_widget(popup, popup_area);
             }
             State::Cleanable(artifact_dirs) => {
                 let artifact_list =
@@ -132,8 +138,10 @@ impl SelectedProject {
                             .borders(Borders::ALL)
                             .border_style(Style::new().red()),
                     );
-                frame.render_widget(Clear, popup_area);
-                frame.render_widget(popup, popup_area);
+                Clear.render(area, buf);
+                Widget::render(popup, area, buf);
+                // frame.render_widget(Clear, popup_area);
+                // frame.render_widget(popup, popup_area);
             }
             State::Clean => todo!(),
         }
@@ -152,8 +160,32 @@ impl SelectedProject {
     }
 }
 
-// impl Widget for SelectedProject {
-//     fn render(self, area: Rect, buf: &mut Buffer) {
-//         todo!()
-//     }
-// }
+impl Component for SelectedProject {
+    fn render(&mut self, area: Rect, buf: &mut Buffer) {
+        self.render(area, buf);
+    }
+
+    fn handle_events(&mut self, event: Option<Event>) -> crate::component::Action {
+        match event {
+            // Some(Event::Quit) => Action::Quit,
+            // Some(Event::Tick) => Action::Tick,
+            Some(Event::Key(key_event)) => self.handle_key_events(key_event),
+            Some(Event::Mouse(mouse_event)) => self.handle_mouse_events(mouse_event),
+            // Some(Event::Resize(x, y)) => Action::Resize(x, y),
+            Some(_) => crate::component::Action::Noop,
+            None => crate::component::Action::Noop,
+        }
+    }
+
+    fn handle_key_events(&mut self, key: KeyEvent) -> crate::component::Action {
+        crate::component::Action::Noop
+    }
+
+    fn handle_mouse_events(&mut self, mouse: MouseEvent) -> crate::component::Action {
+        crate::component::Action::Noop
+    }
+
+    fn update(&mut self, action: crate::component::Action) -> crate::component::Action {
+        crate::component::Action::Noop
+    }
+}

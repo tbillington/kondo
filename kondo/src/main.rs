@@ -1,4 +1,6 @@
 use clap::{command, Parser};
+use component::Component;
+use core::str;
 use kondo_lib::{crossbeam::Receiver, Project, ProjectEnum};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
@@ -15,30 +17,33 @@ use std::{
 };
 use widgets::{project_list::ProjectList, selected::SelectedProject};
 
+mod component;
+mod discovery;
 mod tui;
 mod widgets;
 
 pub(crate) type ProjId = u32;
 
-#[derive(Debug)]
 struct App {
     exit: bool,
-    main_project_list: ProjectList,
-    rx: Receiver<TableEntry>,
+    // main_project_list: ProjectList,
+    // rx: Receiver<TableEntry>,
     proj_count: u32,
     state: RuntimeState,
     show_empty: bool,
+    component_stack: Vec<Box<dyn Component>>,
 }
 
 impl App {
-    fn new(rx: Receiver<TableEntry>) -> Self {
+    fn new(paths: Vec<PathBuf>) -> Self {
         Self {
             exit: false,
-            rx,
-            main_project_list: ProjectList::default(),
+            // rx,
+            // main_project_list: ProjectList::default(),
             proj_count: 0,
             state: RuntimeState::MainListView,
             show_empty: false,
+            component_stack: vec![Box::new(ProjectList::new(paths))],
         }
     }
 }
@@ -64,121 +69,162 @@ impl App {
     fn render_frame(&mut self, frame: &mut Frame) {
         let area = frame.area();
 
-        frame.render_widget(&mut self.main_project_list, area);
+        self.component_stack.iter_mut().for_each(|x| {
+            x.render(area, frame.buffer_mut());
+        });
 
-        if matches!(self.state, RuntimeState::DisplayHelp) {
-            self.render_help(frame);
-        }
+        // frame.render_widget(&mut self.main_project_list, area);
 
-        if let RuntimeState::Selected(selected_proj) = &mut self.state {
-            // TODO: something better than linear scan?
-            if let Some(table_entry) = self
-                .main_project_list
-                .items
-                .iter()
-                .find(|i| i.id == selected_proj.id)
-            {
-                let result = selected_proj.render(frame, table_entry);
-                if matches!(result, widgets::selected::SelectedWidgetResult::Finished) {
-                    self.state = RuntimeState::MainListView;
-                }
-            } else {
-                self.state = RuntimeState::MainListView;
-            }
-        }
+        // if matches!(self.state, RuntimeState::DisplayHelp) {
+        //     self.render_help(frame);
+        // }
+
+        // if let RuntimeState::Selected(selected_proj) = &mut self.state {
+        //     // TODO: something better than linear scan?
+        //     if let Some(table_entry) = self
+        //         .main_project_list
+        //         .items
+        //         .iter()
+        //         .find(|i| i.id == selected_proj.id)
+        //     {
+        //         let result = selected_proj.render(frame, table_entry);
+        //         if matches!(result, widgets::selected::SelectedWidgetResult::Finished) {
+        //             self.state = RuntimeState::MainListView;
+        //         }
+        //     } else {
+        //         self.state = RuntimeState::MainListView;
+        //     }
+        // }
     }
 
     fn handle_events(&mut self) -> io::Result<()> {
-        let mut new_table_entry = false;
-        while let Ok(res) = self.rx.try_recv() {
-            self.main_project_list.biggest_artifact_bytes = self
-                .main_project_list
-                .biggest_artifact_bytes
-                .max(res.artifact_bytes);
-            if let Some((last_modified, _)) = res.last_modified_secs {
-                self.main_project_list.oldest_modified_seconds = self
-                    .main_project_list
-                    .oldest_modified_seconds
-                    .max(last_modified);
-            }
-            self.main_project_list.items.push(res);
-            self.proj_count += 1;
-            new_table_entry = true;
-        }
-        if new_table_entry {
-            self.main_project_list
-                .items
-                .sort_unstable_by(|a, b| b.artifact_bytes.cmp(&a.artifact_bytes));
-        }
+        // let mut new_table_entry = false;
+        // while let Ok(res) = self.rx.try_recv() {
+        //     self.main_project_list.biggest_artifact_bytes = self
+        //         .main_project_list
+        //         .biggest_artifact_bytes
+        //         .max(res.artifact_bytes);
+        //     if let Some((last_modified, _)) = res.last_modified_secs {
+        //         self.main_project_list.oldest_modified_seconds = self
+        //             .main_project_list
+        //             .oldest_modified_seconds
+        //             .max(last_modified);
+        //     }
+        //     self.main_project_list.items.push(res);
+        //     self.proj_count += 1;
+        //     new_table_entry = true;
+        // }
+        // if new_table_entry {
+        //     self.main_project_list
+        //         .items
+        //         .sort_unstable_by(|a, b| b.artifact_bytes.cmp(&a.artifact_bytes));
+        // }
 
         if !event::poll(EVENT_POLL_DURATION)? {
             return Ok(());
         }
 
-        match event::read()? {
-            // it's important to check that the event is a key press event as
-            // crossterm also emits key release and repeat events on Windows.
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)
+        let event = event::read()?;
+
+        let mut remove_components_from_idx = None;
+        let mut push_component = None;
+
+        for (i, c) in self.component_stack.iter_mut().enumerate().rev() {
+            match c.handle_events(Some(event.clone())) {
+                component::Action::Quit => {
+                    remove_components_from_idx = Some(i);
+                    break;
+                }
+                component::Action::Consumed => {
+                    break;
+                }
+                component::Action::Noop => {}
+                component::Action::Push(c) => {
+                    push_component = Some(c);
+                    break;
+                }
             }
-            _ => {}
-        };
+        }
+
+        if let Some(i) = remove_components_from_idx {
+            self.component_stack.truncate(i);
+        }
+
+        if let Some(c) = push_component {
+            self.component_stack.push(c);
+        }
+
+        if self.component_stack.is_empty() {
+            self.exit = true;
+        }
+
+        // match event::read()? {
+        //     // it's important to check that the event is a key press event as
+        //     // crossterm also emits key release and repeat events on Windows.
+        //     Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+        //         self.handle_key_event(key_event)
+        //     }
+        //     _ => {}
+        // };
 
         Ok(())
     }
 
-    fn handle_key_event(&mut self, key_event: KeyEvent) {
-        match self.state {
-            RuntimeState::MainListView => {
-                match self.main_project_list.handle_key_event(key_event) {
-                    widgets::project_list::ProjectListHandleKeyOutcome::Quit => self.exit(),
-                    widgets::project_list::ProjectListHandleKeyOutcome::Unused => {}
-                    widgets::project_list::ProjectListHandleKeyOutcome::Consumed => {}
-                    widgets::project_list::ProjectListHandleKeyOutcome::Select(selected) => {
-                        self.state = RuntimeState::Selected(selected)
-                    }
-                }
-            }
-            RuntimeState::DisplayHelp => todo!(),
-            RuntimeState::Selected(ref mut sp) => match sp.handle_key_event(key_event) {
-                widgets::selected::SelectedProjectHandleKeyOutcome::Quit => {
-                    self.state = RuntimeState::MainListView
-                }
-                widgets::selected::SelectedProjectHandleKeyOutcome::Unused => {}
-            },
-        }
-        return;
-        match key_event.code {
-            KeyCode::Char('q') | KeyCode::Esc => match self.state {
-                RuntimeState::MainListView => self.exit(),
-                _ => self.state = RuntimeState::MainListView,
-            },
-            // KeyCode::Left | KeyCode::Char('h') => self.decrement_counter(),
-            // KeyCode::Right | KeyCode::Char('l') => self.increment_counter(),
-            KeyCode::Down | KeyCode::Char('j') => self.main_project_list.key_down_arrow(),
-            KeyCode::Up | KeyCode::Char('k') => self.main_project_list.key_up_arrow(),
-            KeyCode::Char('?') => self.toggle_help(),
-            KeyCode::Enter => {
-                if let Some(selected_idx) = self.main_project_list.table_state.selected() {
-                    if let Some(selected_item) = self.main_project_list.items.get(selected_idx) {
-                        self.state = RuntimeState::Selected(SelectedProject::new(selected_item));
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
+    // fn handle_key_event(&mut self, key_event: KeyEvent) {
+    //     match self.state {
+    //         RuntimeState::MainListView => {
+    //             match self.main_project_list.handle_key_event(key_event) {
+    //                 widgets::project_list::ProjectListHandleKeyOutcome::Quit => self.exit(),
+    //                 widgets::project_list::ProjectListHandleKeyOutcome::Unused => {}
+    //                 widgets::project_list::ProjectListHandleKeyOutcome::Consumed => {}
+    //                 widgets::project_list::ProjectListHandleKeyOutcome::Select(selected) => {
+    //                     self.state = RuntimeState::Selected(selected)
+    //                 }
+    //             }
+    //         }
+    //         RuntimeState::DisplayHelp => todo!(),
+    //         RuntimeState::Selected(ref mut sp) => match sp.handle_key_event(key_event) {
+    //             widgets::selected::SelectedProjectHandleKeyOutcome::Quit => {
+    //                 self.state = RuntimeState::MainListView
+    //             }
+    //             widgets::selected::SelectedProjectHandleKeyOutcome::Unused => {}
+    //         },
+    //     }
+    //     if let KeyCode::Char('?' | 'h') = key_event.code {
+    //         self.toggle_help()
+    //     };
+    //     return;
+    //     match key_event.code {
+    //         KeyCode::Char('q') | KeyCode::Esc => match self.state {
+    //             RuntimeState::MainListView => self.exit(),
+    //             _ => self.state = RuntimeState::MainListView,
+    //         },
+    //         // KeyCode::Left | KeyCode::Char('h') => self.decrement_counter(),
+    //         // KeyCode::Right | KeyCode::Char('l') => self.increment_counter(),
+    //         KeyCode::Down | KeyCode::Char('j') => self.main_project_list.key_down_arrow(),
+    //         KeyCode::Up | KeyCode::Char('k') => self.main_project_list.key_up_arrow(),
+    //         KeyCode::Char('?') => self.toggle_help(),
+    //         KeyCode::Enter => {
+    //             if let Some(selected_idx) = self.main_project_list.table_state.selected() {
+    //                 if let Some(selected_item) = self.main_project_list.items.get(selected_idx) {
+    //                     self.state = RuntimeState::Selected(SelectedProject::new(selected_item));
+    //                 }
+    //             }
+    //         }
+    //         _ => {}
+    //     }
+    // }
 
-    fn toggle_help(&mut self) {
-        self.state = match self.state {
-            RuntimeState::DisplayHelp => RuntimeState::MainListView,
-            _ => RuntimeState::DisplayHelp,
-        };
-    }
+    // fn toggle_help(&mut self) {
+    //     self.state = match self.state {
+    //         RuntimeState::DisplayHelp => RuntimeState::MainListView,
+    //         _ => RuntimeState::DisplayHelp,
+    //     };
+    // }
 
-    fn exit(&mut self) {
-        self.exit = true;
-    }
+    // fn exit(&mut self) {
+    //     self.exit = true;
+    // }
 
     fn render_help(&self, frame: &mut Frame) {
         let block = Block::default().title("Popup").borders(Borders::ALL);
@@ -187,53 +233,53 @@ impl App {
         frame.render_widget(block, area);
     }
 
-    fn render_selected(&self, proj_id: ProjId, frame: &mut Frame) {
-        let Some(selected) = self
-            .main_project_list
-            .items
-            .iter()
-            .find(|proj| proj.id == proj_id)
-        else {
-            return;
-        };
+    // fn render_selected(&self, proj_id: ProjId, frame: &mut Frame) {
+    //     let Some(selected) = self
+    //         .main_project_list
+    //         .items
+    //         .iter()
+    //         .find(|proj| proj.id == proj_id)
+    //     else {
+    //         return;
+    //     };
 
-        let area = frame.area();
+    //     let area = frame.area();
 
-        let popup_area = Rect {
-            x: area.width / 4,
-            y: area.height / 3,
-            width: area.width / 2,
-            height: (area.height / 3).max(4),
-        };
+    //     let popup_area = Rect {
+    //         x: area.width / 4,
+    //         y: area.height / 3,
+    //         width: area.width / 2,
+    //         height: (area.height / 3).max(4),
+    //     };
 
-        let selected_path = Path::new(selected.path_str.as_ref());
+    //     let selected_path = Path::new(selected.path_str.as_ref());
 
-        let root_artifacts = selected.proj.root_artifacts(selected_path);
+    //     let root_artifacts = selected.proj.root_artifacts(selected_path);
 
-        let para = root_artifacts
-            .into_iter()
-            .map(|pb| {
-                pb.strip_prefix(selected_path)
-                    .unwrap_or(&pb)
-                    .to_string_lossy()
-                    .to_string()
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
+    //     let para = root_artifacts
+    //         .into_iter()
+    //         .map(|pb| {
+    //             pb.strip_prefix(selected_path)
+    //                 .unwrap_or(&pb)
+    //                 .to_string_lossy()
+    //                 .to_string()
+    //         })
+    //         .collect::<Vec<_>>()
+    //         .join("\n");
 
-        let bad_popup = ratatui::widgets::Paragraph::new(para)
-            .wrap(ratatui::widgets::Wrap { trim: true })
-            .style(Style::new().yellow())
-            .block(
-                Block::new()
-                    .title(selected.name.as_ref())
-                    .title_style(Style::new().white().bold())
-                    .borders(Borders::ALL)
-                    .border_style(Style::new().red()),
-            );
-        frame.render_widget(Clear, popup_area);
-        frame.render_widget(bad_popup, popup_area);
-    }
+    //     let bad_popup = ratatui::widgets::Paragraph::new(para)
+    //         .wrap(ratatui::widgets::Wrap { trim: true })
+    //         .style(Style::new().yellow())
+    //         .block(
+    //             Block::new()
+    //                 .title(selected.name.as_ref())
+    //                 .title_style(Style::new().white().bold())
+    //                 .borders(Borders::ALL)
+    //                 .border_style(Style::new().red()),
+    //         );
+    //     frame.render_widget(Clear, popup_area);
+    //     frame.render_widget(bad_popup, popup_area);
+    // }
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
@@ -331,73 +377,7 @@ fn main() -> io::Result<()> {
         vec![std::env::current_dir().unwrap()]
     };
 
-    let rx = kondo_lib::run_local(dirs.into_iter(), None);
-    let (ttx, rrx) = kondo_lib::crossbeam::unbounded();
-    std::thread::spawn(move || {
-        let mut get_id = {
-            let mut next_id = 0;
-            move || {
-                let id = next_id;
-                next_id += 1;
-                id
-            }
-        };
-
-        while let Ok((path, proj)) = rx.recv() {
-            let name = proj
-                .name(&path)
-                .unwrap_or_else(|| {
-                    path.file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .into_owned()
-                })
-                .into_boxed_str();
-
-            let focus = proj
-                .project_focus(&path)
-                .map(|focus| focus.into_boxed_str());
-
-            let artifact_bytes = proj.artifact_size(&path);
-
-            // if artifact_bytes == 0 {
-            //     continue;
-            // }
-
-            let artifact_bytes_fmt = pretty_size2(artifact_bytes);
-
-            let mut last_modified_secs = None;
-            if let Ok(lm) = proj.last_modified(&path) {
-                if let Ok(elapsed) = lm.elapsed() {
-                    let secs = elapsed.as_secs();
-                    last_modified_secs = Some((secs, print_elapsed(secs)));
-                }
-            }
-
-            let path_str = path.to_string_lossy().into_owned().into_boxed_str();
-
-            let path_chars = path_str.chars().count() as u16;
-
-            let entry = TableEntry {
-                id: get_id(),
-                proj,
-                name,
-                focus,
-                path,
-                path_str,
-                path_chars,
-                artifact_bytes,
-                artifact_bytes_fmt,
-                last_modified_secs,
-            };
-
-            if ttx.send(entry).is_err() {
-                break;
-            }
-        }
-    });
-
-    let mut app = App::new(rrx);
+    let mut app = App::new(dirs);
 
     let app_result = app.run(&mut terminal);
     tui::restore()?;
