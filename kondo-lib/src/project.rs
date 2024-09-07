@@ -7,6 +7,7 @@ pub mod godot;
 pub mod node;
 pub mod rust;
 pub mod unity;
+pub mod unreal;
 
 use cmake::CMakeProject;
 use godot::GodotProject;
