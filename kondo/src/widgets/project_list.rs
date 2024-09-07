@@ -142,6 +142,20 @@ impl Component for ProjectList {
     fn render(&mut self, area: Rect, buf: &mut Buffer) {
         Widget::render(self, area, buf);
     }
+
+    fn status_line(&self) -> Title {
+        Title::from(
+            Line::from(vec![
+                "↑↓←→".into(),
+                " ".into(),
+                "[".into(),
+                "h?".bold(),
+                "]".into(),
+                "elp".bold(),
+            ])
+            .yellow(),
+        )
+    }
 }
 
 impl Widget for &mut ProjectList {
@@ -161,15 +175,6 @@ impl Widget for &mut ProjectList {
             self.items
                 .sort_unstable_by(|a, b| b.artifact_bytes.cmp(&a.artifact_bytes));
         }
-
-        let instructions = Title::from(
-            Line::from(vec!["[".into(), "?".bold(), "]".into(), "elp".bold()]).yellow(),
-        );
-        let block = Block::default().title(
-            instructions
-                .alignment(Alignment::Center)
-                .position(ratatui::widgets::block::Position::Bottom),
-        );
 
         let columns = {
             let modified = Constraint::Length(3);
@@ -297,7 +302,7 @@ impl Widget for &mut ProjectList {
                 .bold(),
             )
             .column_spacing(column_spacing)
-            .block(block)
+            // .block(block)
             .highlight_style(
                 Style::default()
                     .add_modifier(Modifier::BOLD)

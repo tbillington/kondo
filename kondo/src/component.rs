@@ -1,6 +1,7 @@
 use ratatui::{
     crossterm::event::{Event, KeyEvent, MouseEvent},
     prelude::*,
+    widgets::block::Title,
 };
 
 pub(crate) enum Action {
@@ -37,6 +38,10 @@ pub(crate) trait Component {
 
     fn update(&mut self, action: Action) -> Action {
         Action::Noop
+    }
+
+    fn status_line(&self) -> Title {
+        Title::from("Unimplemented")
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer);

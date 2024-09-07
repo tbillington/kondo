@@ -69,9 +69,28 @@ impl App {
     fn render_frame(&mut self, frame: &mut Frame) {
         let area = frame.area();
 
+        let area_without_status_bar = {
+            let mut area = area;
+            area.height = area.height.saturating_sub(1);
+            area
+        };
+
         self.component_stack.iter_mut().for_each(|x| {
-            x.render(area, frame.buffer_mut());
+            x.render(area_without_status_bar, frame.buffer_mut());
         });
+
+        let status_bar_area = {
+            let mut area = area;
+            area.y = area.height.saturating_sub(1);
+            area.height = 1;
+            area
+        };
+
+        if let Some(top_cmp) = self.component_stack.last() {
+            Block::new()
+                .title(top_cmp.status_line().alignment(Alignment::Center))
+                .render(status_bar_area, frame.buffer_mut());
+        }
 
         // frame.render_widget(&mut self.main_project_list, area);
 

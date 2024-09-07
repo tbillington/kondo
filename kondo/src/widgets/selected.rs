@@ -7,7 +7,10 @@ use ratatui::{
     widgets::{Block, Borders, Clear, List, Paragraph},
 };
 
-use crate::{component::Component, pretty_size2, ProjId, TableEntry};
+use crate::{
+    component::{Action, Component},
+    pretty_size2, ProjId, TableEntry,
+};
 
 #[derive(Debug)]
 pub(crate) struct SelectedProject {
@@ -89,6 +92,8 @@ impl SelectedProject {
             height: (area.height / 3).max(4),
         };
 
+        let area = popup_area;
+
         match &self.state {
             State::FetchingArtifactSizes(_) => {
                 let popup = Paragraph::new("Fetching")
@@ -132,7 +137,9 @@ impl SelectedProject {
                     // .wrap(ratatui::widgets::Wrap { trim: true })
                     .style(Style::new().yellow())
                     .block(
+                        
                         Block::new()
+                        
                             .title(selected.name.as_ref())
                             .title_style(Style::new().white().bold())
                             .borders(Borders::ALL)
@@ -178,7 +185,12 @@ impl Component for SelectedProject {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> crate::component::Action {
-        crate::component::Action::Noop
+        match key.code {
+            KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
+            KeyCode::Up | KeyCode::Char('k') | KeyCode::Down | KeyCode::Char('j') |
+            KeyCode::Left | KeyCode::Char('h') | KeyCode::Right | KeyCode::Char('l') => Action::Consumed,
+            _ => Action::Noop,
+        }
     }
 
     fn handle_mouse_events(&mut self, mouse: MouseEvent) -> crate::component::Action {
