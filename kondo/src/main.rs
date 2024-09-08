@@ -57,6 +57,10 @@ struct Opt {
     /// If there is no input, defaults to yes
     #[arg(short, long)]
     default: bool,
+
+    /// Only list the directories that would be cleaned, without actually cleaning them.
+    #[arg(short = 'n', long, conflicts_with = "all")]
+    dry_run: bool,
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -223,6 +227,7 @@ fn interactive_prompt(
     quiet: u8,
     mut clean_all: bool,
     default: bool,
+    dry_run: bool,
 ) {
     'project_loop: for (project, artifact_dirs, artifact_bytes, last_modified) in projects_recv {
         if quiet == 0 {
@@ -238,6 +243,8 @@ fn interactive_prompt(
 
         let clean_project = if clean_all {
             true
+        } else if dry_run {
+            false
         } else {
             loop {
                 print!(
@@ -347,6 +354,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         opt.quiet,
         opt.all,
         opt.default,
+        opt.dry_run,
     );
 
     let delete_results = match delete_handle.join() {
