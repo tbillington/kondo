@@ -228,8 +228,14 @@ fn interactive_prompt(
     mut clean_all: bool,
     default: bool,
     dry_run: bool,
-) {
+) -> (usize, u64) {
+    let mut total_projects = 0;
+    let mut total_bytes = 0;
+
     'project_loop: for (project, artifact_dirs, artifact_bytes, last_modified) in projects_recv {
+        total_projects += 1;
+        total_bytes += artifact_bytes;
+
         if quiet == 0 {
             println!(
                 "{} {} project {last_modified}",
@@ -295,6 +301,8 @@ fn interactive_prompt(
             }
         }
     }
+
+    (total_projects, total_bytes)
 }
 
 fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
@@ -348,7 +356,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let delete_handle = std::thread::spawn(move || process_deletes(proj_delete_recv));
 
-    interactive_prompt(
+    let (total_projects, total_bytes) = interactive_prompt(
         proj_discover_recv,
         proj_delete_send,
         opt.quiet,
@@ -368,10 +376,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     if opt.quiet < 2 {
         let projects_cleaned = delete_results.len();
         let bytes_deleted = delete_results.iter().map(|(_, bytes)| bytes).sum();
+
         println!(
-            "Projects cleaned: {}, Bytes deleted: {}",
+            "Projects cleaned: {}/{}, Bytes deleted: {} / {}",
             projects_cleaned,
-            pretty_size(bytes_deleted)
+            total_projects,
+            pretty_size(bytes_deleted),
+            pretty_size(total_bytes)
         );
     }
 
