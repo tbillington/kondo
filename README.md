@@ -95,7 +95,7 @@ pacman -S kondo
 
 **Source**
 
-Requires [rust](https://www.rust-lang.org/tools/install).
+Requires [Rust](https://www.rust-lang.org/tools/install).
 
 ```sh
 git clone https://github.com/tbillington/kondo.git
