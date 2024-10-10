@@ -5,7 +5,7 @@ jobs:
   #   name: Test using nighly
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v2
+  #     - uses: actions/checkout@v4
   #     - name: Install toolchain
   #       uses: actions-rs/toolchain@v1
   #       with:
@@ -20,7 +20,7 @@ jobs:
   #   name: Test using beta
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v2
+  #     - uses: actions/checkout@v4
   #     - name: Install toolchain
   #       uses: actions-rs/toolchain@v1
   #       with:
@@ -35,7 +35,7 @@ jobs:
     name: Test using stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:

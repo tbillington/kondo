@@ -16,7 +16,7 @@ jobs:
   install-cross:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
         with:
           depth: 50
       - uses: XAMPPRocky/get-github-release@v1
@@ -47,7 +47,7 @@ jobs:
           # - i686-pc-windows-gnu
           # - x86_64-pc-windows-gnu
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: bash ci/set_rust_version.bash stable ${{ matrix.target }}
       - run: bash ci/build.bash cargo ${{ matrix.target }} RELEASE
       - run: |
@@ -94,7 +94,7 @@ jobs:
           # - i386-apple-ios
           # - x86_64-apple-ios
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v1
         with:
           name: cross-apple-darwin
@@ -169,7 +169,7 @@ jobs:
           # - thumbv7em-none-eabihf
           # - thumbv7m-none-eabi
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v1
         with:
           name: cross-linux-musl
