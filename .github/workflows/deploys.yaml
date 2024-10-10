@@ -95,7 +95,7 @@ jobs:
           # - x86_64-apple-ios
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: cross-apple-darwin
           path: /usr/local/bin/
@@ -170,7 +170,7 @@ jobs:
           # - thumbv7m-none-eabi
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: cross-linux-musl
           path: /tmp/
