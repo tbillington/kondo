@@ -1,14 +1,20 @@
-use std::{cmp::Ordering, path::Path, sync::mpsc, thread};
+use std::{
+    cmp::Ordering,
+    convert::identity,
+    path::{Path, PathBuf},
+    sync::mpsc,
+    thread,
+};
 
 use kondo_lib::{pretty_size, scan, ScanOptions};
 use winit::{dpi::LogicalSize, window::Window};
 use xilem::{
-    core::MessageProxy,
+    core::{fork, MessageProxy, PhantomView},
     view::{
-        button, flex, label, portal, prose, Axis, Button, CrossAxisAlignment, FlexExt, FlexParams,
-        Portal,
+        button, flex, label, portal, prose, textbox, worker, worker_raw, Axis, Button,
+        CrossAxisAlignment, FlexExt, FlexParams, Portal,
     },
-    Color, TextAlignment, WidgetView, Xilem,
+    Color, TextAlignment, ViewCtx, WidgetView, Xilem,
 };
 
 fn spawn_scanner_thread(
@@ -103,11 +109,41 @@ struct Kondo {
     items: Vec<Project>,
     active_item: Option<Project>,
     scan_dir: String,
+    scan_dir_input: String,
     artifact_size: u64,
     non_artifact_size: u64,
     saved: u64,
     scan_complete: ScanStatus,
     scan_starter_send: mpsc::SyncSender<ScanStarterThreadMsg>,
+}
+
+fn scanner(data: &mut Kondo) -> impl PhantomView<Kondo, (), ViewCtx> {
+    let sender = data.scan_starter_send.clone();
+    // We use the raw version here, because we do need to move a (clone of)
+    // sender into the worker
+    worker_raw(
+        data.scan_dir.to_string(),
+        move |proxy, mut messages| {
+            let sender = sender.clone();
+            async move {
+                while let Some(message) = messages.recv().await {
+                    match sender.send(ScanStarterThreadMsg::StartScan(message, proxy.clone())) {
+                        Ok(()) => {}
+                        Err(_) => break,
+                    };
+                }
+            }
+        },
+        |data: &mut Kondo, response: ScanResult| match response {
+            ScanResult::AddItem(project) => {
+                data.artifact_size += project.artifact_size;
+                data.non_artifact_size += project.non_artifact_size;
+                let pos = data.items.binary_search(&project).unwrap_or_else(identity);
+                data.items.insert(pos, project);
+            }
+            ScanResult::Complete => data.scan_complete = ScanStatus::Complete,
+        },
+    )
 }
 
 impl Kondo {
@@ -117,6 +153,10 @@ impl Kondo {
                 .alignment(TextAlignment::Middle)
                 .brush(Color::rgb(0.5, 0.75, 1.0))
                 .flex(CrossAxisAlignment::Center),
+            textbox(
+                self.scan_dir_input.to_string(),
+                |data: &mut Kondo, new_content| data.scan_dir_input = new_content,
+            ),
             flex((
                 label(format!(
                     "{} {}",
@@ -127,8 +167,15 @@ impl Kondo {
                         ScanStatus::NotStarted => "scan not started",
                     }
                 )),
-                button("Select Directory", |_| {
-                    // TODO: Open a file select dialogue...
+                button("Select Directory", |data: &mut Kondo| {
+                    // TODO: Use a file select dialogue instead
+                    data.scan_dir = data.scan_dir_input.clone();
+
+                    data.active_item = None;
+                    data.artifact_size = 0;
+                    data.items.clear();
+                    data.non_artifact_size = 0;
+                    data.scan_complete = ScanStatus::InProgress;
                 }),
             ))
             .direction(Axis::Horizontal)
@@ -173,10 +220,16 @@ impl Kondo {
         ));
         let vert = flex(());
 
-        flex((
-            header,
-            flex((path_listing, vert)).direction(Axis::Horizontal),
-        ))
+        let scanner = scanner(self);
+        fork(
+            flex((
+                header,
+                flex((path_listing.flex(1.0), vert.flex(1.0)))
+                    .direction(Axis::Horizontal)
+                    .must_fill_major_axis(true),
+            )),
+            scanner,
+        )
     }
 }
 
@@ -193,10 +246,16 @@ pub(crate) fn xilem_main() {
     };
 
     spawn_scanner_thread(scan_starter_recv, scan_options).expect("error spawning scan thread");
+    let home_dir = homedir::my_home()
+        .ok()
+        .flatten()
+        .and_then(|it| it.into_os_string().into_string().ok());
+
     let kondo = Kondo {
         items: Vec::new(),
         active_item: None,
         scan_dir: String::new(),
+        scan_dir_input: home_dir.unwrap_or_default(),
         artifact_size: 0,
         non_artifact_size: 0,
         saved: 0,
