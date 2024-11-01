@@ -18,6 +18,9 @@ keywords = ["clean", "cleanup", "delete", "free"]
 
 [dependencies]
 druid = "0.7"
+# https://github.com/linebender/xilem/issues/584
+winit = { version = "0.30.5", default-features = false }
+xilem = { git = "https://github.com/linebender/xilem", rev = "c3a6bd55163d1c37251bd8af47f0067be81319e5" }
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"

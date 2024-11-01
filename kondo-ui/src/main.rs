@@ -1,6 +1,8 @@
 // On the Windows platform, disable the console when opening the app
 #![windows_subsystem = "windows"]
 
+mod xilem;
+
 use std::{
     cmp::Ordering,
     path,
@@ -19,6 +21,21 @@ use druid::{
 };
 
 use kondo_lib::{clean, pretty_size, scan, ScanOptions};
+
+fn main() {
+    match std::env::args().nth(1).as_deref_mut().map(|it| {
+        it.make_ascii_lowercase();
+        &*it
+    }) {
+        None | Some("xilem") => {
+            crate::xilem::xilem_main();
+        }
+        Some("druid") => {
+            druid_main();
+        }
+        Some(other) => panic!("Unknown argument {other}"),
+    }
+}
 
 const ADD_ITEM: Selector<Project> = Selector::new("event.add-item");
 const SET_ACTIVE_ITEM: Selector<Project> = Selector::new("event.set-active-item");
@@ -215,7 +232,7 @@ fn spawn_scanner_thread(
     Ok(())
 }
 
-fn main() {
+fn druid_main() {
     let window = WindowDesc::new(make_ui)
         .title(LocalizedString::new("kondo-main-window-title").with_placeholder("Kondo 🧹"))
         .window_size((1000.0, 500.0));
