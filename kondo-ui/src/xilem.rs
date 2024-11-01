@@ -127,6 +127,9 @@ fn scanner(data: &mut Kondo) -> impl PhantomView<Kondo, (), ViewCtx> {
             let sender = sender.clone();
             async move {
                 while let Some(message) = messages.recv().await {
+                    if message.is_empty() {
+                        continue;
+                    }
                     match sender.send(ScanStarterThreadMsg::StartScan(message, proxy.clone())) {
                         Ok(()) => {}
                         Err(_) => break,
@@ -218,13 +221,13 @@ impl Kondo {
                 .gap(5.),
             ),
         ));
-        let vert = flex(());
+        let active_item = flex(());
 
         let scanner = scanner(self);
         fork(
             flex((
                 header,
-                flex((path_listing.flex(1.0), vert.flex(1.0)))
+                flex((path_listing.flex(1.0), active_item.flex(1.0)))
                     .direction(Axis::Horizontal)
                     .must_fill_major_axis(true),
             )),
