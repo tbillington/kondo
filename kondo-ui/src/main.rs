@@ -262,6 +262,11 @@ impl Kondo {
                                     },
                                     pretty_size(*size)
                                 ))
+                                .brush(if *artifact {
+                                    Color::ORANGE_RED
+                                } else {
+                                    Color::WHITE
+                                })
                             })
                             .collect::<Vec<_>>(),
                     )
