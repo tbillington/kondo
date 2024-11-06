@@ -1,12 +1,12 @@
 use std::{cmp::Ordering, convert::identity, path::Path, sync::mpsc, thread};
 
-use kondo_lib::{pretty_size, scan, ScanOptions};
+use kondo_lib::{clean, pretty_size, scan, ScanOptions};
 use winit::{dpi::LogicalSize, window::Window};
 use xilem::{
     core::{fork, one_of::Either, MessageProxy, PhantomView},
     view::{
-        button, flex, grid, label, portal, prose, sized_box, textbox, worker_raw, Axis,
-        CrossAxisAlignment, FlexExt, GridExt,
+        button, flex, grid, inline_prose, label, portal, prose, sized_box, textbox, worker_raw,
+        Axis, CrossAxisAlignment, FlexExt, FlexParams, GridExt,
     },
     Color, TextAlignment, ViewCtx, WidgetView, Xilem,
 };
@@ -89,7 +89,7 @@ impl PartialOrd for Project {
 
 impl Eq for Project {}
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum ScanStatus {
     NotStarted,
     InProgress,
@@ -125,15 +125,18 @@ fn scanner(data: &mut Kondo) -> impl PhantomView<Kondo, (), ViewCtx> {
     // We use the raw version here, because we do need to move a (clone of)
     // sender into the worker
     worker_raw(
-        data.scan_dir.to_string(),
+        (data.scan_dir.to_string(), data.scan_complete),
         move |proxy, mut messages| {
             let sender = sender.clone();
             async move {
-                while let Some(message) = messages.recv().await {
-                    if message.is_empty() {
+                while let Some((scan_dir, status)) = messages.recv().await {
+                    if !matches!(status, ScanStatus::InProgress) {
                         continue;
                     }
-                    match sender.send(ScanStarterThreadMsg::StartScan(message, proxy.clone())) {
+                    if scan_dir.is_empty() {
+                        continue;
+                    }
+                    match sender.send(ScanStarterThreadMsg::StartScan(scan_dir, proxy.clone())) {
                         Ok(()) => {}
                         Err(_) => break,
                     };
@@ -156,10 +159,10 @@ fn scanner(data: &mut Kondo) -> impl PhantomView<Kondo, (), ViewCtx> {
 impl Kondo {
     fn view(&mut self) -> impl WidgetView<Self> {
         let header = (
+            // N.B. Emoji support for Xilem is expected https://github.com/linebender/xilem/pull/616
             prose("Kondo 🧹")
                 .alignment(TextAlignment::Middle)
-                .brush(Color::rgb(0.5, 0.75, 1.0))
-                .flex(CrossAxisAlignment::Center),
+                .brush(Color::rgb(0.5, 0.75, 1.0)),
             textbox(
                 self.scan_dir_input.to_string(),
                 |data: &mut Kondo, new_content| data.scan_dir_input = new_content,
@@ -170,7 +173,7 @@ impl Kondo {
                 data.update_scan_target();
             }),
             flex((
-                prose(format!(
+                inline_prose(format!(
                     "{} {}",
                     self.scan_dir,
                     match self.scan_complete {
@@ -196,8 +199,7 @@ impl Kondo {
                 pretty_size(self.artifact_size + self.non_artifact_size),
                 pretty_size(self.saved)
             ))
-            .alignment(TextAlignment::Middle)
-            .flex(CrossAxisAlignment::Fill),
+            .alignment(TextAlignment::Middle),
         );
         let path_listing = flex((
             prose(format!("{} projects", self.items.len())).alignment(TextAlignment::Middle),
@@ -226,43 +228,71 @@ impl Kondo {
                 ))
                 .cross_axis_alignment(CrossAxisAlignment::Fill)
                 .gap(5.),
-            ),
+            )
+            .flex(1.0),
         ))
         .cross_axis_alignment(CrossAxisAlignment::Fill);
+
         let maybe_active_item = match self.active_item.as_ref() {
             None => Either::A(prose(
                 "No project selected. Choose a project from the list to the left.",
             )),
-            Some(project) => Either::B(
-                flex((
-                    prose(project.display.as_str()),
-                    project
-                        .dirs
-                        .iter()
-                        .enumerate()
-                        .map(|(i, (dir_name, size, artifact))| {
-                            prose(format!(
-                                " {}─ {}{} {}",
-                                if i == project.dirs.len() - 1 {
-                                    "└"
-                                } else {
-                                    "├"
-                                },
-                                dir_name,
-                                if *artifact {
-                                    /* "🗑️" */
-                                    "(artifact)"
-                                } else {
-                                    ""
-                                },
-                                pretty_size(*size)
-                            ))
-                        })
-                        .collect::<Vec<_>>(),
-                ))
-                .cross_axis_alignment(CrossAxisAlignment::Start)
-                .gap(0.0),
-            ),
+            Some(project) => Either::B(flex((
+                prose(project.display.as_str()),
+                portal(
+                    flex(
+                        project
+                            .dirs
+                            .iter()
+                            .enumerate()
+                            .map(|(i, (dir_name, size, artifact))| {
+                                prose(format!(
+                                    " {}─ {}{} {}",
+                                    if i == project.dirs.len() - 1 {
+                                        "└"
+                                    } else {
+                                        "├"
+                                    },
+                                    dir_name,
+                                    if *artifact {
+                                        /* "🗑️" */
+                                        "(artifact)"
+                                    } else {
+                                        ""
+                                    },
+                                    pretty_size(*size)
+                                ))
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .gap(0.0),
+                )
+                .flex(1.0),
+                button("Clean project of artifacts", |data: &mut Kondo| {
+                    let Some(active_item) = data.active_item.take() else {
+                        eprintln!("Unexpected missing active item; button shouldn't exist");
+                        return;
+                    };
+                    let active_project = data
+                        .items
+                        .iter_mut()
+                        .find(|probe| probe.path == active_item.path)
+                        .expect("If there is an active item, it is in the set of available items");
+                    // TODO: We choose to ignore the TOCTOU
+                    clean(&active_item.path).expect("Cleaning project which existed should work");
+                    data.artifact_size -= active_item.artifact_size;
+                    data.saved += active_item.artifact_size;
+                    active_project.artifact_size = 0;
+                    for (_, size, artifact_dir) in &mut active_project.dirs {
+                        if *artifact_dir {
+                            // TODO: The directory has actually been removed entirely.
+                            *size = 0;
+                        }
+                    }
+                    data.active_item = Some(active_project.clone());
+                    data.items.sort_unstable();
+                }),
+            ))),
         };
 
         let scanner = scanner(self);
@@ -279,9 +309,10 @@ impl Kondo {
                     2,
                     1,
                 )
-                .flex(CrossAxisAlignment::Fill),
+                .flex(FlexParams::new(1.0, CrossAxisAlignment::Fill)),
             ))
-            .must_fill_major_axis(true),
+            .must_fill_major_axis(true)
+            .cross_axis_alignment(CrossAxisAlignment::Fill),
             scanner,
         )
     }
