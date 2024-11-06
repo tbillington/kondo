@@ -1,18 +1,12 @@
-use std::{
-    cmp::Ordering,
-    convert::identity,
-    path::{Path, PathBuf},
-    sync::mpsc,
-    thread,
-};
+use std::{cmp::Ordering, convert::identity, path::Path, sync::mpsc, thread};
 
 use kondo_lib::{pretty_size, scan, ScanOptions};
 use winit::{dpi::LogicalSize, window::Window};
 use xilem::{
-    core::{fork, MessageProxy, PhantomView},
+    core::{fork, one_of::Either, MessageProxy, PhantomView},
     view::{
-        button, flex, label, portal, prose, textbox, worker, worker_raw, Axis, Button,
-        CrossAxisAlignment, FlexExt, FlexParams, Portal,
+        button, flex, grid, label, portal, prose, sized_box, textbox, worker_raw, Axis,
+        CrossAxisAlignment, FlexExt, GridExt,
     },
     Color, TextAlignment, ViewCtx, WidgetView, Xilem,
 };
@@ -24,8 +18,17 @@ fn spawn_scanner_thread(
     thread::Builder::new()
         .name(String::from("scan"))
         .spawn(move || {
-            while let Ok(ScanStarterThreadMsg::StartScan(p, proxy)) = scan_starter_recv.recv() {
-                for project in scan(&p, &options).filter_map(|p| p.ok()) {
+            while let Ok(ScanStarterThreadMsg::StartScan(path, proxy)) = scan_starter_recv.recv() {
+                if !std::fs::exists(&path).unwrap_or(true) {
+                    let message_result = proxy.message(ScanResult::InvalidPath);
+                    if message_result.is_err() {
+                        // The corresponding `View` has been deleted, wait for the next task
+                        // TODO(Xilem side): That's not actually true
+                        continue;
+                    }
+                    continue;
+                }
+                for project in scan(&path, &options).filter_map(|p| p.ok()) {
                     let name = project.name().to_string();
                     let project_size = project.size_dirs(&options);
                     let display = Path::new(&name)
@@ -41,8 +44,6 @@ fn spawn_scanner_thread(
                         dirs: project_size.dirs,
                     };
                     if proxy.message(ScanResult::AddItem(project)).is_err() {
-                        // The corresponding `View` has been deleted
-                        // TODO: That's not actually true
                         continue;
                     }
                 }
@@ -92,6 +93,7 @@ impl Eq for Project {}
 enum ScanStatus {
     NotStarted,
     InProgress,
+    InvalidPath,
     Complete,
 }
 
@@ -103,6 +105,7 @@ enum ScanStarterThreadMsg {
 enum ScanResult {
     AddItem(Project),
     Complete,
+    InvalidPath,
 }
 
 struct Kondo {
@@ -145,6 +148,7 @@ fn scanner(data: &mut Kondo) -> impl PhantomView<Kondo, (), ViewCtx> {
                 data.items.insert(pos, project);
             }
             ScanResult::Complete => data.scan_complete = ScanStatus::Complete,
+            ScanResult::InvalidPath => data.scan_complete = ScanStatus::InvalidPath,
         },
     )
 }
@@ -152,58 +156,59 @@ fn scanner(data: &mut Kondo) -> impl PhantomView<Kondo, (), ViewCtx> {
 impl Kondo {
     fn view(&mut self) -> impl WidgetView<Self> {
         let header = (
-            label("Kondo 🧹")
+            prose("Kondo 🧹")
                 .alignment(TextAlignment::Middle)
                 .brush(Color::rgb(0.5, 0.75, 1.0))
                 .flex(CrossAxisAlignment::Center),
             textbox(
                 self.scan_dir_input.to_string(),
                 |data: &mut Kondo, new_content| data.scan_dir_input = new_content,
-            ),
+            )
+            .on_enter(|data, result| {
+                // TODO: Does on_enter imply on_changed?
+                data.scan_dir_input = result;
+                data.update_scan_target();
+            }),
             flex((
-                label(format!(
+                prose(format!(
                     "{} {}",
                     self.scan_dir,
                     match self.scan_complete {
                         ScanStatus::Complete => "scan complete ✔️",
                         ScanStatus::InProgress => "scan in progress... 📡",
                         ScanStatus::NotStarted => "scan not started",
+                        ScanStatus::InvalidPath => "scan cancelled due to invalid path",
                     }
                 )),
                 button("Select Directory", |data: &mut Kondo| {
-                    // TODO: Use a file select dialogue instead
-                    data.scan_dir = data.scan_dir_input.clone();
-
-                    data.active_item = None;
-                    data.artifact_size = 0;
-                    data.items.clear();
-                    data.non_artifact_size = 0;
-                    data.scan_complete = ScanStatus::InProgress;
+                    data.update_scan_target();
                 }),
             ))
             .direction(Axis::Horizontal)
             .flex(CrossAxisAlignment::Center),
             prose(format!(
-                "artifacts {} non-artifacts {} total {} recovered {}",
+                "artifacts {}\n\
+                non-artifacts {}\n\
+                total {}\n\
+                recovered {}",
                 pretty_size(self.artifact_size),
                 pretty_size(self.non_artifact_size),
                 pretty_size(self.artifact_size + self.non_artifact_size),
                 pretty_size(self.saved)
             ))
             .alignment(TextAlignment::Middle)
-            .flex(CrossAxisAlignment::Center),
+            .flex(CrossAxisAlignment::Fill),
         );
         let path_listing = flex((
-            prose(format!("{} projects", self.items.len()))
-                .alignment(TextAlignment::Middle)
-                .flex(FlexParams::new(1.0, CrossAxisAlignment::Center)),
+            prose(format!("{} projects", self.items.len())).alignment(TextAlignment::Middle),
             portal(
-                flex(
+                flex((
+                    label("vello#644 workaround").text_size(0.1),
                     self.items
                         .iter()
                         .enumerate()
                         .map(|(idx, item)| {
-                            button(
+                            sized_box(button(
                                 format!(
                                     "{} ({}) {} / {}",
                                     item.display,
@@ -214,25 +219,82 @@ impl Kondo {
                                 move |data: &mut Kondo| {
                                     data.active_item = Some(data.items[idx].clone());
                                 },
-                            )
+                            ))
+                            .expand_width()
                         })
                         .collect::<Vec<_>>(),
-                )
+                ))
+                .cross_axis_alignment(CrossAxisAlignment::Fill)
                 .gap(5.),
             ),
-        ));
-        let active_item = flex(());
+        ))
+        .cross_axis_alignment(CrossAxisAlignment::Fill);
+        let maybe_active_item = match self.active_item.as_ref() {
+            None => Either::A(prose(
+                "No project selected. Choose a project from the list to the left.",
+            )),
+            Some(project) => Either::B(
+                flex((
+                    prose(project.display.as_str()),
+                    project
+                        .dirs
+                        .iter()
+                        .enumerate()
+                        .map(|(i, (dir_name, size, artifact))| {
+                            prose(format!(
+                                " {}─ {}{} {}",
+                                if i == project.dirs.len() - 1 {
+                                    "└"
+                                } else {
+                                    "├"
+                                },
+                                dir_name,
+                                if *artifact {
+                                    /* "🗑️" */
+                                    "(artifact)"
+                                } else {
+                                    ""
+                                },
+                                pretty_size(*size)
+                            ))
+                        })
+                        .collect::<Vec<_>>(),
+                ))
+                .cross_axis_alignment(CrossAxisAlignment::Start)
+                .gap(0.0),
+            ),
+        };
 
         let scanner = scanner(self);
         fork(
             flex((
                 header,
-                flex((path_listing.flex(1.0), active_item.flex(1.0)))
-                    .direction(Axis::Horizontal)
-                    .must_fill_major_axis(true),
-            )),
+                // Use a Grid to force a 1x2 layout, because for reasons
+                // unknown this doesn't work with flex
+                grid(
+                    (
+                        path_listing.grid_pos(0, 0),
+                        maybe_active_item.grid_pos(1, 0),
+                    ),
+                    2,
+                    1,
+                )
+                .flex(CrossAxisAlignment::Fill),
+            ))
+            .must_fill_major_axis(true),
             scanner,
         )
+    }
+
+    fn update_scan_target(&mut self) {
+        // TODO: Use a file select dialogue instead
+        self.scan_dir = self.scan_dir_input.clone();
+
+        self.active_item = None;
+        self.artifact_size = 0;
+        self.items.clear();
+        self.non_artifact_size = 0;
+        self.scan_complete = ScanStatus::InProgress;
     }
 }
 
