@@ -21,7 +21,7 @@ druid = "0.7"
 homedir = "0.3.4"
 # https://github.com/linebender/xilem/issues/584
 winit = { version = "0.30.5", default-features = false }
-xilem = { git = "https://github.com/linebender/xilem", rev = "c3a6bd55163d1c37251bd8af47f0067be81319e5" }
+xilem = { git = "https://github.com/linebender/xilem", rev = "ee3126139fb162c1f051d8af227f3e88fa615931" }
 
 [dependencies.kondo-lib]
 path = "../kondo-lib"
