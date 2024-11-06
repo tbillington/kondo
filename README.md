@@ -33,6 +33,7 @@ Excellent if
 <a href="https://www.python.org/">Python</a>
 <a href="https://www.scala-sbt.org/">SBT</a> (Scala),
 <a href="https://docs.haskellstack.org/">Stack</a> (Haskell),
+<a href="https://cabal.readthedocs.io/en/stable/">Cabal</a> (Haskell),
 <a href="https://swift.org/">Swift</a>
 </p>
 <p align="center">

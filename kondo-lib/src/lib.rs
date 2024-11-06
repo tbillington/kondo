@@ -10,6 +10,7 @@ const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
 const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
+const FILE_CABAL_HASKELL: &str = "cabal.project";
 const FILE_SBT_BUILD: &str = "build.sbt";
 const FILE_MVN_BUILD: &str = "pom.xml";
 const FILE_BUILD_GRADLE: &str = "build.gradle";
@@ -41,6 +42,7 @@ const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Builds",
 ];
 const PROJECT_STACK_DIRS: [&str; 1] = [".stack-work"];
+const PROJECT_CABAL_DIRS: [&str; 1] = ["dist-newstyle"];
 const PROJECT_SBT_DIRS: [&str; 2] = ["target", "project/target"];
 const PROJECT_MVN_DIRS: [&str; 1] = ["target"];
 const PROJECT_GRADLE_DIRS: [&str; 2] = ["build", ".gradle"];
@@ -82,6 +84,7 @@ const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
 const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
+const PROJECT_CABAL_NAME: &str = "Cabal";
 const PROJECT_SBT_NAME: &str = "SBT";
 const PROJECT_MVN_NAME: &str = "Maven";
 const PROJECT_GRADLE_NAME: &str = "Gradle";
@@ -105,6 +108,7 @@ pub enum ProjectType {
     Node,
     Unity,
     Stack,
+    Cabal,
     #[allow(clippy::upper_case_acronyms)]
     SBT,
     Maven,
@@ -144,6 +148,7 @@ impl Project {
             ProjectType::Node => &PROJECT_NODE_DIRS,
             ProjectType::Unity => &PROJECT_UNITY_DIRS,
             ProjectType::Stack => &PROJECT_STACK_DIRS,
+            ProjectType::Cabal => &PROJECT_CABAL_DIRS,
             ProjectType::SBT => &PROJECT_SBT_DIRS,
             ProjectType::Maven => &PROJECT_MVN_DIRS,
             ProjectType::Unreal => &PROJECT_UNREAL_DIRS,
@@ -254,6 +259,7 @@ impl Project {
             ProjectType::Node => PROJECT_NODE_NAME,
             ProjectType::Unity => PROJECT_UNITY_NAME,
             ProjectType::Stack => PROJECT_STACK_NAME,
+            ProjectType::Cabal => PROJECT_CABAL_NAME,
             ProjectType::SBT => PROJECT_SBT_NAME,
             ProjectType::Maven => PROJECT_MVN_NAME,
             ProjectType::Unreal => PROJECT_UNREAL_NAME,
@@ -364,6 +370,7 @@ impl Iterator for ProjectIter {
                     FILE_PACKAGE_JSON => Some(ProjectType::Node),
                     FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
                     FILE_STACK_HASKELL => Some(ProjectType::Stack),
+                    FILE_CABAL_HASKELL => Some(ProjectType::Cabal),
                     FILE_SBT_BUILD => Some(ProjectType::SBT),
                     FILE_MVN_BUILD => Some(ProjectType::Maven),
                     FILE_CMAKE_BUILD => Some(ProjectType::CMake),
@@ -486,6 +493,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_PACKAGE_JSON => Some(ProjectType::Node),
                 FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
                 FILE_STACK_HASKELL => Some(ProjectType::Stack),
+                FILE_CABAL_HASKELL => Some(ProjectType::Cabal),
                 FILE_SBT_BUILD => Some(ProjectType::SBT),
                 FILE_MVN_BUILD => Some(ProjectType::Maven),
                 FILE_CMAKE_BUILD => Some(ProjectType::CMake),
