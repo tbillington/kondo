@@ -17,8 +17,8 @@ keywords = ["clean", "cleanup", "delete", "free"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-druid = "0.7"
 homedir = "0.3.4"
+
 # https://github.com/linebender/xilem/issues/584
 winit = { version = "0.30.5", default-features = false }
 xilem = { git = "https://github.com/linebender/xilem", rev = "ee3126139fb162c1f051d8af227f3e88fa615931" }
