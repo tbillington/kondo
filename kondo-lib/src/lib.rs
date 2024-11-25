@@ -75,7 +75,7 @@ const PROJECT_PUB_DIRS: [&str; 4] = [
 ];
 const PROJECT_ELIXIR_DIRS: [&str; 4] = ["_build", ".elixir-tools", ".elixir_ls", ".lexical"];
 const PROJECT_SWIFT_DIRS: [&str; 2] = [".build", ".swiftpm"];
-const PROJECT_ZIG_DIRS: [&str; 1] = ["zig-cache"];
+const PROJECT_ZIG_DIRS: [&str; 3] = ["zig-cache", ".zig-cache", "zig-out"];
 const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
 const PROJECT_DOTNET_DIRS: [&str; 2] = ["bin", "obj"];
 const PROJECT_TURBOREPO_DIRS: [&str; 1] = [".turbo"];
