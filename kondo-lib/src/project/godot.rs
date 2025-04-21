@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use super::{filter_paths_exist, Project};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GodotProject;
 
 const ROOT_ARTIFACT_PATHS: &[&str] = &[".godot"];

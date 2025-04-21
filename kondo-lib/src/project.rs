@@ -31,7 +31,7 @@ pub trait Project {
 }
 
 #[enum_dispatch]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectEnum {
     CMakeProject,
     NodeProject,

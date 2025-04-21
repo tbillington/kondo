@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use super::{filter_paths_exist, Project};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NodeProject;
 
 const ROOT_ARTIFACT_PATHS: &[&str] = &["node_modules", ".angular"];

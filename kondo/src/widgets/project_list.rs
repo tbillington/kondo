@@ -72,6 +72,14 @@ impl ProjectList {
         }
     }
 
+    pub(crate) fn toggle_stage_selected(&mut self) {
+        if let Some(idx) = self.table_state.selected() {
+            if let Some(item) = self.items.get_mut(idx) {
+                item.staged = !item.staged;
+            }
+        }
+    }
+
     // pub(crate) fn handle_key_event(&mut self, key_event: KeyEvent) -> ProjectListHandleKeyOutcome {
     //     match key_event.code {
     //         KeyCode::Char('q') | KeyCode::Esc => ProjectListHandleKeyOutcome::Quit,
@@ -126,6 +134,10 @@ impl Component for ProjectList {
                 self.key_up_arrow();
                 Action::Consumed
             }
+            KeyCode::Char(' ') => {
+                self.toggle_stage_selected();
+                Action::Consumed
+            }
             KeyCode::Enter => {
                 if let Some(selected_idx) = self.table_state.selected() {
                     if let Some(selected_item) = self.items.get(selected_idx) {
@@ -146,6 +158,11 @@ impl Component for ProjectList {
     fn status_line(&self) -> Title {
         Title::from(
             Line::from(vec![
+                "[".into(),
+                "c".bold(),
+                "]".into(),
+                "lean".into(),
+                " ".into(),
                 "↑↓←→".into(),
                 " ".into(),
                 "[".into(),
@@ -243,10 +260,16 @@ impl Widget for &mut ProjectList {
                 lerp(20.0, 100.0, rel)
             };
 
+            let name_with_staged = if proj.staged {
+                format!("STAGED {}", proj.name)
+            } else {
+                proj.name.to_string()
+            };
+
             let name = match &proj.focus {
-                None => Text::from(proj.name.as_ref()),
+                None => Text::from(name_with_staged),
                 Some(focus) => Text::from(Line::default().spans([
-                    Span::raw(proj.name.as_ref()),
+                    Span::raw(name_with_staged),
                     Span::raw(" "),
                     Span::raw(focus.as_ref()).style(Color::from_hsl(0.0, 0.0, 50.0)),
                 ])),

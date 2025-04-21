@@ -1,4 +1,4 @@
-use clap::{command, Parser};
+use clap::{command, Parser, Subcommand};
 use component::Component;
 use core::str;
 use kondo_lib::{crossbeam::Receiver, Project, ProjectEnum};
@@ -375,6 +375,8 @@ struct TableEntry {
     artifact_bytes: u64,
     artifact_bytes_fmt: (Box<str>, Box<str>),
     last_modified_secs: Option<(u64, Box<str>)>,
+    staged: bool,
+    cleaned: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -383,10 +385,30 @@ struct Opt {
     /// The directories to examine. Current working directory will be used if DIRS is omitted.
     #[arg(name = "DIRS")]
     dirs: Vec<PathBuf>,
+
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand, Debug)]
+// #[command(name = "report")]
+enum Command {
+    Report {
+        /// The directories to examine. Current working directory will be used if DIRS is omitted.
+        #[arg(name = "DIRS")]
+        dirs: Vec<PathBuf>,
+    },
 }
 
 fn main() -> io::Result<()> {
     let opt = Opt::parse();
+
+    match opt.command {
+        Some(Command::Report { dirs }) => {
+            return Ok(());
+        }
+        None => {}
+    }
 
     let mut terminal = tui::init()?;
 

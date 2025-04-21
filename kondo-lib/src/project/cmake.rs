@@ -20,7 +20,7 @@ use cmake_parser::{parse_cmakelists, Command, Doc};
 
 use super::{filter_paths_exist, Project};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CMakeProject;
 
 const ROOT_ARTIFACT_PATHS: [&str; 3] = ["build", "cmake-build-debug", "cmake-build-release"];

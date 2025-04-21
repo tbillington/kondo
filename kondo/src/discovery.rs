@@ -63,6 +63,8 @@ pub(crate) fn discover(dirs: Vec<PathBuf>) -> Receiver<TableEntry> {
                 artifact_bytes,
                 artifact_bytes_fmt,
                 last_modified_secs,
+                staged: false,
+                cleaned: false,
             };
 
             if ttx.send(entry).is_err() {
