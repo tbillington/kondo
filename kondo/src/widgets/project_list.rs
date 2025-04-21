@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use kondo_lib::{crossbeam::Receiver, Project as _, ProjectEnum};
 use ratatui::{
     crossterm::event::{Event, KeyCode, KeyEvent},
+    palette::Hsl,
     prelude::*,
-    widgets::{block::Title, Block, Cell, Row, Table, TableState},
+    widgets::{block::Title, Cell, Row, Table, TableState},
 };
 
 use crate::{
@@ -271,7 +272,7 @@ impl Widget for &mut ProjectList {
                 Some(focus) => Text::from(Line::default().spans([
                     Span::raw(name_with_staged),
                     Span::raw(" "),
-                    Span::raw(focus.as_ref()).style(Color::from_hsl(0.0, 0.0, 50.0)),
+                    Span::raw(focus.as_ref()).style(Color::from_hsl(Hsl::new(0.0, 0.0, 50.0))),
                 ])),
             };
 
@@ -287,23 +288,27 @@ impl Widget for &mut ProjectList {
 
             let last_mod = if let Some(lm) = &proj.last_modified_secs {
                 Text::from(lm.1.as_ref())
-                    .style(Color::from_hsl(190.0, last_modified_saturation, 60.0))
+                    .style(Color::from_hsl(Hsl::new(
+                        190.0,
+                        last_modified_saturation as f32,
+                        60.0,
+                    )))
                     .alignment(Alignment::Right)
             } else {
                 Text::raw("")
             };
             let size = Text::from(Line::default().spans([
-                Span::raw(proj.artifact_bytes_fmt.0.as_ref()).style(Color::from_hsl(
+                Span::raw(proj.artifact_bytes_fmt.0.as_ref()).style(Color::from_hsl(Hsl::new(
                     100.0,
-                    artifact_size_saturation,
+                    artifact_size_saturation as f32,
                     50.0,
-                )),
+                ))),
                 Span::raw(" "),
-                Span::raw(proj.artifact_bytes_fmt.1.as_ref()).style(Color::from_hsl(
+                Span::raw(proj.artifact_bytes_fmt.1.as_ref()).style(Color::from_hsl(Hsl::new(
                     100.0,
-                    artifact_size_saturation - 20.0,
+                    artifact_size_saturation as f32 - 20.0,
                     50.0,
-                )),
+                ))),
             ]))
             .alignment(Alignment::Right);
             let kind = Text::from(proj.proj.kind_name()).style(proj_colour(proj.proj));
@@ -326,7 +331,7 @@ impl Widget for &mut ProjectList {
             )
             .column_spacing(column_spacing)
             // .block(block)
-            .highlight_style(
+            .row_highlight_style(
                 Style::default()
                     .add_modifier(Modifier::BOLD)
                     .bg(Color::DarkGray),

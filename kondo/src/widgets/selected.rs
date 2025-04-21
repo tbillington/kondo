@@ -3,6 +3,7 @@ use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 use kondo_lib::{project::dir_size, Project as _};
 use ratatui::{
     crossterm::event::{Event, KeyCode, KeyEvent, MouseEvent},
+    palette::Hsl,
     prelude::*,
     widgets::{Block, Borders, Clear, List, Paragraph},
 };
@@ -112,19 +113,17 @@ impl SelectedProject {
                 // frame.render_widget(popup, popup_area);
             }
             State::Cleanable(artifact_dirs) => {
+                let colour_a = Color::from_hsl(Hsl::new(100.0, 100.0, 50.0));
+                let colour_b = Color::from_hsl(Hsl::new(100.0, 80.0, 50.0));
                 let artifact_list =
                     List::new(artifact_dirs.iter().map(|(dir, size_str, size_suffix)| {
-                        Text::from(
-                            Line::default().spans([
-                                Span::raw(dir.as_ref()),
-                                Span::raw(" "),
-                                Span::raw(size_str.as_ref())
-                                    .style(Color::from_hsl(100.0, 100.0, 50.0)),
-                                Span::raw(" "),
-                                Span::raw(size_suffix.as_ref())
-                                    .style(Color::from_hsl(100.0, 80.0, 50.0)),
-                            ]),
-                        )
+                        Text::from(Line::default().spans([
+                            Span::raw(dir.as_ref()),
+                            Span::raw(" "),
+                            Span::raw(size_str.as_ref()).style(colour_a),
+                            Span::raw(" "),
+                            Span::raw(size_suffix.as_ref()).style(colour_b),
+                        ]))
                     }));
                 // let para = artifact_dirs
                 //     .into_iter()
@@ -137,9 +136,7 @@ impl SelectedProject {
                     // .wrap(ratatui::widgets::Wrap { trim: true })
                     .style(Style::new().yellow())
                     .block(
-                        
                         Block::new()
-                        
                             .title(selected.name.as_ref())
                             .title_style(Style::new().white().bold())
                             .borders(Borders::ALL)
@@ -187,8 +184,14 @@ impl Component for SelectedProject {
     fn handle_key_events(&mut self, key: KeyEvent) -> crate::component::Action {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
-            KeyCode::Up | KeyCode::Char('k') | KeyCode::Down | KeyCode::Char('j') |
-            KeyCode::Left | KeyCode::Char('h') | KeyCode::Right | KeyCode::Char('l') => Action::Consumed,
+            KeyCode::Up
+            | KeyCode::Char('k')
+            | KeyCode::Down
+            | KeyCode::Char('j')
+            | KeyCode::Left
+            | KeyCode::Char('h')
+            | KeyCode::Right
+            | KeyCode::Char('l') => Action::Consumed,
             _ => Action::Noop,
         }
     }
