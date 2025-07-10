@@ -28,6 +28,7 @@ const FILE_BUILD_ZIG: &str = "build.zig";
 const FILE_GODOT_4_PROJECT: &str = "project.godot";
 const FILE_CSPROJ_SUFFIX: &str = ".csproj";
 const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
+const FILE_TERRAFORM_HCL: &str = ".terraform.lock.hcl";
 const FILE_PROJECT_TURBOREPO: &str = "turbo.json";
 
 const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
@@ -79,6 +80,7 @@ const PROJECT_ZIG_DIRS: [&str; 3] = ["zig-cache", ".zig-cache", "zig-out"];
 const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
 const PROJECT_DOTNET_DIRS: [&str; 2] = ["bin", "obj"];
 const PROJECT_TURBOREPO_DIRS: [&str; 1] = [".turbo"];
+const PROJECT_TERRAFORM_DIRS: [&str; 1] = [".terraform"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
@@ -101,6 +103,7 @@ const PROJECT_ZIG_NAME: &str = "Zig";
 const PROJECT_GODOT_4_NAME: &str = "Godot 4.x";
 const PROJECT_DOTNET_NAME: &str = ".NET";
 const PROJECT_TURBOREPO_NAME: &str = "Turborepo";
+const PROJECT_TERRAFORM_NAME: &str = "Terraform";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -126,6 +129,7 @@ pub enum ProjectType {
     Godot4,
     Dotnet,
     Turborepo,
+    Terraform,
 }
 
 #[derive(Debug, Clone)]
@@ -165,6 +169,7 @@ impl Project {
             ProjectType::Godot4 => &PROJECT_GODOT_4_DIRS,
             ProjectType::Dotnet => &PROJECT_DOTNET_DIRS,
             ProjectType::Turborepo => &PROJECT_TURBOREPO_DIRS,
+            ProjectType::Terraform => &PROJECT_TERRAFORM_DIRS,
         }
     }
 
@@ -276,6 +281,7 @@ impl Project {
             ProjectType::Godot4 => PROJECT_GODOT_4_NAME,
             ProjectType::Dotnet => PROJECT_DOTNET_NAME,
             ProjectType::Turborepo => PROJECT_TURBOREPO_NAME,
+            ProjectType::Terraform => PROJECT_TERRAFORM_NAME,
         }
     }
 
@@ -384,6 +390,7 @@ impl Iterator for ProjectIter {
                     FILE_BUILD_ZIG => Some(ProjectType::Zig),
                     FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
                     FILE_PROJECT_TURBOREPO => Some(ProjectType::Turborepo),
+                    FILE_TERRAFORM_HCL => Some(ProjectType::Terraform),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -504,6 +511,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_SWIFT_PACKAGE => Some(ProjectType::Swift),
                 FILE_BUILD_ZIG => Some(ProjectType::Zig),
                 FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
+                FILE_TERRAFORM_HCL => Some(ProjectType::Terraform),
                 _ => None,
             };
             if let Some(project_type) = p_type {
