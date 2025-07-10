@@ -231,6 +231,7 @@ impl Widget for &mut ProjectList {
                     ProjectEnum::RustProject(_) => Color::from_u32(0xdea584),
                     ProjectEnum::UnityProject(_) => Color::from_u32(0x178600),
                     ProjectEnum::GodotProject(_) => Color::from_u32(0x355570),
+                    ProjectEnum::TerraformProject(_) => Color::from_u32(0x7b42bb),
                 }
             }
 
