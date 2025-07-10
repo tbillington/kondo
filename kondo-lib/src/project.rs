@@ -8,12 +8,14 @@ pub mod node;
 pub mod rust;
 pub mod unity;
 pub mod unreal;
+pub mod terraform;
 
 use cmake::CMakeProject;
 use godot::GodotProject;
 use node::NodeProject;
 use rust::RustProject;
 use unity::UnityProject;
+use terraform::TerraformProject;
 
 #[enum_dispatch(ProjectEnum)]
 pub trait Project {
@@ -38,6 +40,7 @@ pub enum ProjectEnum {
     RustProject,
     UnityProject,
     GodotProject,
+    TerraformProject,
 }
 
 impl ProjectEnum {
@@ -47,6 +50,7 @@ impl ProjectEnum {
         Self::UnityProject(UnityProject),
         Self::CMakeProject(CMakeProject),
         Self::GodotProject(GodotProject),
+        Self::TerraformProject(TerraformProject),
     ];
 
     pub fn artifact_size(&self, path: &Path) -> u64 {
