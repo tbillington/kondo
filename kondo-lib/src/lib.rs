@@ -173,7 +173,7 @@ impl Project {
         }
     }
 
-    pub fn name(&self) -> Cow<str> {
+    pub fn name(&self) -> Cow<'_, str> {
         self.path.to_string_lossy()
     }
 
