@@ -33,15 +33,15 @@ const FILE_PODFILE: &str = "Podfile";
 
 const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
-const PROJECT_REACT_NATIVE_DIRS: [&str; 9] = [
+const PROJECT_REACT_NATIVE_DIRS: [&str; 8] = [
     "node_modules",
     "android/build",
-    "android/.gradle", 
+    "android/.gradle",
     "ios/build",
     "ios/DerivedData",
     "ios/Pods",
     ".expo",
-    ".metro"
+    ".metro",
 ];
 const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Library",
