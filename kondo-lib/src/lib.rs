@@ -30,9 +30,20 @@ const FILE_CSPROJ_SUFFIX: &str = ".csproj";
 const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
 const FILE_TERRAFORM_HCL: &str = ".terraform.lock.hcl";
 const FILE_PROJECT_TURBOREPO: &str = "turbo.json";
+const FILE_PODFILE: &str = "Podfile";
 
 const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
 const PROJECT_NODE_DIRS: [&str; 2] = ["node_modules", ".angular"];
+const PROJECT_REACT_NATIVE_DIRS: [&str; 9] = [
+    "node_modules",
+    "android/build",
+    "android/.gradle", 
+    "ios/build",
+    "ios/DerivedData",
+    "ios/Pods",
+    ".expo",
+    ".metro"
+];
 const PROJECT_UNITY_DIRS: [&str; 7] = [
     "Library",
     "Temp",
@@ -81,9 +92,11 @@ const PROJECT_GODOT_4_DIRS: [&str; 1] = [".godot"];
 const PROJECT_DOTNET_DIRS: [&str; 2] = ["bin", "obj"];
 const PROJECT_TURBOREPO_DIRS: [&str; 1] = [".turbo"];
 const PROJECT_TERRAFORM_DIRS: [&str; 1] = [".terraform"];
+const PROJECT_COCOAPODS_DIRS: [&str; 1] = ["Pods"];
 
 const PROJECT_CARGO_NAME: &str = "Cargo";
 const PROJECT_NODE_NAME: &str = "Node";
+const PROJECT_NODE_REACT_NATIVE_NAME: &str = "Node (React Native)";
 const PROJECT_UNITY_NAME: &str = "Unity";
 const PROJECT_STACK_NAME: &str = "Stack";
 const PROJECT_CABAL_NAME: &str = "Cabal";
@@ -104,6 +117,7 @@ const PROJECT_GODOT_4_NAME: &str = "Godot 4.x";
 const PROJECT_DOTNET_NAME: &str = ".NET";
 const PROJECT_TURBOREPO_NAME: &str = "Turborepo";
 const PROJECT_TERRAFORM_NAME: &str = "Terraform";
+const PROJECT_COCOAPODS_NAME: &str = "CocoaPods";
 
 #[derive(Debug, Clone)]
 pub enum ProjectType {
@@ -130,6 +144,7 @@ pub enum ProjectType {
     Dotnet,
     Turborepo,
     Terraform,
+    Cocoapods,
 }
 
 #[derive(Debug, Clone)]
@@ -149,7 +164,13 @@ impl Project {
     pub fn artifact_dirs(&self) -> &[&str] {
         match self.project_type {
             ProjectType::Cargo => &PROJECT_CARGO_DIRS,
-            ProjectType::Node => &PROJECT_NODE_DIRS,
+            ProjectType::Node => {
+                if is_react_native_project(&self.path) {
+                    &PROJECT_REACT_NATIVE_DIRS
+                } else {
+                    &PROJECT_NODE_DIRS
+                }
+            }
             ProjectType::Unity => &PROJECT_UNITY_DIRS,
             ProjectType::Stack => &PROJECT_STACK_DIRS,
             ProjectType::Cabal => &PROJECT_CABAL_DIRS,
@@ -170,6 +191,7 @@ impl Project {
             ProjectType::Dotnet => &PROJECT_DOTNET_DIRS,
             ProjectType::Turborepo => &PROJECT_TURBOREPO_DIRS,
             ProjectType::Terraform => &PROJECT_TERRAFORM_DIRS,
+            ProjectType::Cocoapods => &PROJECT_COCOAPODS_DIRS,
         }
     }
 
@@ -261,7 +283,13 @@ impl Project {
     pub fn type_name(&self) -> &'static str {
         match self.project_type {
             ProjectType::Cargo => PROJECT_CARGO_NAME,
-            ProjectType::Node => PROJECT_NODE_NAME,
+            ProjectType::Node => {
+                if is_react_native_project(&self.path) {
+                    PROJECT_NODE_REACT_NATIVE_NAME
+                } else {
+                    PROJECT_NODE_NAME
+                }
+            }
             ProjectType::Unity => PROJECT_UNITY_NAME,
             ProjectType::Stack => PROJECT_STACK_NAME,
             ProjectType::Cabal => PROJECT_CABAL_NAME,
@@ -282,6 +310,7 @@ impl Project {
             ProjectType::Dotnet => PROJECT_DOTNET_NAME,
             ProjectType::Turborepo => PROJECT_TURBOREPO_NAME,
             ProjectType::Terraform => PROJECT_TERRAFORM_NAME,
+            ProjectType::Cocoapods => PROJECT_COCOAPODS_NAME,
         }
     }
 
@@ -391,6 +420,7 @@ impl Iterator for ProjectIter {
                     FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
                     FILE_PROJECT_TURBOREPO => Some(ProjectType::Turborepo),
                     FILE_TERRAFORM_HCL => Some(ProjectType::Terraform),
+                    FILE_PODFILE => Some(ProjectType::Cocoapods),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
                         Some(ProjectType::Unreal)
                     }
@@ -434,6 +464,20 @@ fn dir_contains_file(path: &Path, file: &str) -> bool {
             })
         })
         .unwrap_or(false)
+}
+
+fn dir_contains_subdir(path: &Path, subdir: &str) -> bool {
+    path.read_dir()
+        .map(|rd| {
+            rd.filter_map(|rd| rd.ok()).any(|de| {
+                de.file_type().is_ok_and(|t| t.is_dir()) && de.file_name().to_str() == Some(subdir)
+            })
+        })
+        .unwrap_or(false)
+}
+
+fn is_react_native_project(path: &Path) -> bool {
+    dir_contains_subdir(path, "ios") || dir_contains_subdir(path, "android")
 }
 
 #[derive(Clone, Debug)]
@@ -512,6 +556,7 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
                 FILE_BUILD_ZIG => Some(ProjectType::Zig),
                 FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
                 FILE_TERRAFORM_HCL => Some(ProjectType::Terraform),
+                FILE_PODFILE => Some(ProjectType::Cocoapods),
                 _ => None,
             };
             if let Some(project_type) = p_type {
