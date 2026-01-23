@@ -43,6 +43,9 @@ Excellent if
 <a href="https://dotnet.microsoft.com/">.NET</a> (C#, F#)
 <a href="https://turbo.build/repo">Turborepo</a> (JavaScript)
 </p>
+<p align="center">
+<a href="https://developer.hashicorp.com/terraform">Terraform</a>
+</p>
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
 
