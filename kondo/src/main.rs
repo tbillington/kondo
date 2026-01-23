@@ -61,6 +61,10 @@ struct Opt {
     /// Only list the directories that would be cleaned, without actually cleaning them.
     #[arg(short = 'n', long, conflicts_with = "all")]
     dry_run: bool,
+
+    /// Accept one-letter input without waiting for the Enter key.
+    #[arg(long)]
+    single_key: bool,
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -228,6 +232,7 @@ fn interactive_prompt(
     mut clean_all: bool,
     default: bool,
     dry_run: bool,
+    single_key: bool,
 ) -> (usize, u64) {
     let mut total_projects = 0;
     let mut total_bytes = 0;
@@ -266,7 +271,20 @@ fn interactive_prompt(
                 stdout().flush().unwrap();
                 let mut choice = String::new();
 
-                stdin().read_line(&mut choice).unwrap();
+                if single_key {
+                    match console::Term::stdout().read_key().unwrap() {
+                        console::Key::Char(c) => {
+                            choice.push(c);
+                            print!("{c}");
+                        }
+                        console::Key::Enter => {}
+                        _ => choice.push_str("unrecognized key"),
+                    }
+                    println!();
+                } else {
+                    stdin().read_line(&mut choice).unwrap();
+                }
+
                 match choice.trim_end() {
                     "y" => break true,
                     "n" => break false,
@@ -363,6 +381,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         opt.all,
         opt.default,
         opt.dry_run,
+        opt.single_key,
     );
 
     let delete_results = match delete_handle.join() {
