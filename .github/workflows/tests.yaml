@@ -1,5 +1,6 @@
 name: Kondo Tests
-on: [push, pull_request]
+on:
+  push:
 jobs:
   # test-nightly:
   #   name: Test using nighly
