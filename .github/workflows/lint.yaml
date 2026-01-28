@@ -16,6 +16,11 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwayland-dev pkg-config
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
