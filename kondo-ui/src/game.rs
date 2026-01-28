@@ -102,7 +102,7 @@ fn handle_clean_tasks(
 
 enum BackgroundThreadMsg {
     ScanningStarted(Vec<PathBuf>),
-    PLE(ProjectListEntry),
+    Ple(ProjectListEntry),
     #[expect(unused)]
     ScanningFinished,
 }
@@ -406,12 +406,9 @@ fn update_project_list_ui(
 #[derive(Component)]
 struct RootUITag;
 
-fn discover_projects<'a>(
-    dirs: &'a Vec<std::path::PathBuf>,
-) -> impl Iterator<Item = kondo_lib::Project> {
+fn discover_projects(dirs: &[std::path::PathBuf]) -> impl Iterator<Item = kondo_lib::Project> {
     dirs.iter()
         .flatten()
-        .into_iter()
         .flat_map(|dir| kondo_lib::scan(&dir, SCAN_OPTIONS))
         .filter_map(Result::ok)
 }
@@ -430,15 +427,11 @@ fn process_new_projects(
                 if let Some(sdl) = sdl.iter().next() {
                     c.entity(sdl).despawn_children();
                     for dir in dirs {
-                        c.spawn((
-                            Text::new(dir.to_string_lossy().to_owned()),
-                            ThemedText,
-                            ChildOf(sdl),
-                        ));
+                        c.spawn((Text::new(dir.to_string_lossy()), ThemedText, ChildOf(sdl)));
                     }
                 }
             }
-            BackgroundThreadMsg::PLE(ple) => {
+            BackgroundThreadMsg::Ple(ple) => {
                 pl.push(ple);
             }
             BackgroundThreadMsg::ScanningFinished => {}
@@ -480,7 +473,7 @@ fn select_directory(_: On<Activate>, tc: NonSend<BackgroundThreadCommunication>)
             };
 
             if main_thread_send
-                .send(BackgroundThreadMsg::PLE(proj_entry))
+                .send(BackgroundThreadMsg::Ple(proj_entry))
                 .is_err()
             {
                 return;
@@ -685,16 +678,12 @@ fn sort_projectlist(
     for mut pl in pl.iter_mut() {
         match sort {
             SortProjectList::Name => {
-                pl.sort_by_key(|k| {
-                    let key = project_file_name(&ple.get(*k).unwrap().kproj);
-                    key
-                });
+                pl.sort_by_key(|k| project_file_name(&ple.get(*k).unwrap().kproj));
             }
             SortProjectList::Size => {
                 pl.sort_by_key(|k| {
                     let ple = ple.get(*k).unwrap();
-                    let key = std::cmp::Reverse(ple.size);
-                    key
+                    std::cmp::Reverse(ple.size)
                 });
             }
         }
