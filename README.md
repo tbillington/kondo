@@ -98,6 +98,12 @@ sudo port install kondo
 pacman -S kondo
 ```
 
+**[X-CMD](https://x-cmd.com/install/kondo)**
+
+```sh
+x install kondo
+```
+
 **Source**
 
 Requires [Rust](https://www.rust-lang.org/tools/install).
