@@ -1,5 +1,6 @@
 name: Kondo Lints
-on: [push, pull_request]
+on:
+  pull_request:
 jobs:
   lint:
     name: Lint and Formatting
@@ -15,6 +16,11 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0 libwayland-dev libxkbcommon-dev
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1

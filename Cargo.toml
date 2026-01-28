@@ -1,8 +1,15 @@
 [workspace]
-members = ["kondo", "kondo-lib"]
-exclude = ["kondo-ui"]
+members = ["kondo", "kondo-lib", "kondo-ui"]
+default-members = ["kondo"]
 resolver = "2"
+
+[profile.dev]
+debug = "line-tables-only"
 
 [profile.release]
 lto = "thin"
 codegen-units = 1
+# If we don't use these the bevy executable is 200mb+ :(
+debug = false
+panic = "abort"
+strip = true

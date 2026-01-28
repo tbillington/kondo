@@ -1,5 +1,6 @@
 name: Kondo Tests
-on: [push, pull_request]
+on:
+  push:
 jobs:
   # test-nightly:
   #   name: Test using nighly
@@ -36,11 +37,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0 libwayland-dev libxkbcommon-dev
+
       - name: Execute tests
         uses: actions-rs/cargo@v1
         with:
