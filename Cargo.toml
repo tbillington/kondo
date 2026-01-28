@@ -1,5 +1,6 @@
 [workspace]
 members = ["kondo", "kondo-lib", "kondo-ui"]
+default-members = ["kondo"]
 resolver = "2"
 
 [profile.dev]
