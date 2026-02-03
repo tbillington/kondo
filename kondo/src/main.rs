@@ -50,6 +50,10 @@ struct Opt {
     #[arg(short, long, value_parser = parse_age_filter, default_value = "0d")]
     older: u64,
 
+    /// Only directories with artifacts larger than the specified size. Ex: 100mb, 1gb. Units: b (bytes), k/kb (kilobytes), m/mb (megabytes), g/gb (gigabytes).
+    #[arg(short = 'm', long, value_parser = parse_size_filter, default_value = "0")]
+    min_size: u64,
+
     /// Generates completions for the specified shell
     #[arg(long = "completions", value_enum)]
     generator: Option<Shell>,
@@ -152,6 +156,61 @@ pub fn parse_age_filter(age_filter: &str) -> Result<u64, ParseAgeFilterError> {
     Ok(seconds)
 }
 
+#[derive(Debug)]
+pub enum ParseSizeFilterError {
+    ParseIntError(ParseIntError),
+    InvalidUnit,
+}
+
+impl fmt::Display for ParseSizeFilterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseSizeFilterError::ParseIntError(e) => e.fmt(f),
+            ParseSizeFilterError::InvalidUnit => {
+                "invalid size unit, must be one of b, k/kb, m/mb, g/gb".fmt(f)
+            }
+        }
+    }
+}
+
+impl From<ParseIntError> for ParseSizeFilterError {
+    fn from(e: ParseIntError) -> Self {
+        Self::ParseIntError(e)
+    }
+}
+
+impl Error for ParseSizeFilterError {}
+
+pub fn parse_size_filter(size_filter: &str) -> Result<u64, ParseSizeFilterError> {
+    const KIBIBYTE: u64 = 1024;
+    const MEBIBYTE: u64 = 1024 * KIBIBYTE;
+    const GIBIBYTE: u64 = 1024 * MEBIBYTE;
+
+    let size_filter_lower = size_filter.to_lowercase();
+
+    // Find where the unit starts (first non-digit character)
+    let unit_start = size_filter_lower
+        .find(|c: char| !c.is_ascii_digit())
+        .unwrap_or(size_filter_lower.len());
+
+    let (number_part, unit_part) = size_filter_lower.split_at(unit_start);
+
+    // Parse the numeric part
+    let count = number_part.parse::<u64>()?;
+
+    // Determine multiplier based on unit
+    let multiplier = match unit_part {
+        "" | "b" => 1,
+        "k" | "kb" => KIBIBYTE,
+        "m" | "mb" => MEBIBYTE,
+        "g" | "gb" => GIBIBYTE,
+        _ => return Err(ParseSizeFilterError::InvalidUnit),
+    };
+
+    let bytes = count * multiplier;
+    Ok(bytes)
+}
+
 type DiscoverData = (Project, Vec<(String, u64)>, u64, String);
 type DeleteData = (Project, u64);
 
@@ -159,6 +218,7 @@ fn discover(
     dirs: Vec<PathBuf>,
     scan_options: &ScanOptions,
     project_min_age: u64,
+    project_min_size: u64,
     result_sender: SyncSender<DiscoverData>,
     ignored_dirs: &[PathBuf],
 ) {
@@ -197,6 +257,10 @@ fn discover(
         }
 
         if last_modified_int < project_min_age {
+            continue;
+        }
+
+        if project_artifact_bytes < project_min_size {
             continue;
         }
 
@@ -353,6 +417,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (proj_delete_send, proj_delete_recv) = std::sync::mpsc::channel::<(Project, u64)>();
 
     let project_min_age = opt.older;
+    let project_min_size = opt.min_size;
     let ignored_dirs = {
         let cd = current_dir()?;
 
@@ -367,6 +432,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             dirs,
             &scan_options,
             project_min_age,
+            project_min_size,
             proj_discover_send,
             &ignored_dirs,
         );
