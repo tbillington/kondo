@@ -30,6 +30,7 @@ const FILE_CSPROJ_SUFFIX: &str = ".csproj";
 const FILE_FSPROJ_SUFFIX: &str = ".fsproj";
 const FILE_TERRAFORM_HCL: &str = ".terraform.lock.hcl";
 const FILE_PROJECT_TURBOREPO: &str = "turbo.json";
+const FILE_PROJECT_TURBOREPO_JSONC: &str = "turbo.jsonc";
 const FILE_PODFILE: &str = "Podfile";
 
 const PROJECT_CARGO_DIRS: [&str; 2] = ["target", ".xwin-cache"];
@@ -418,6 +419,7 @@ impl Iterator for ProjectIter {
                     FILE_BUILD_ZIG => Some(ProjectType::Zig),
                     FILE_GODOT_4_PROJECT => Some(ProjectType::Godot4),
                     FILE_PROJECT_TURBOREPO => Some(ProjectType::Turborepo),
+                    FILE_PROJECT_TURBOREPO_JSONC => Some(ProjectType::Turborepo),
                     FILE_TERRAFORM_HCL => Some(ProjectType::Terraform),
                     FILE_PODFILE => Some(ProjectType::Cocoapods),
                     file_name if file_name.ends_with(FILE_UNREAL_SUFFIX) => {
