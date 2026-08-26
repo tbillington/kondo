@@ -8,6 +8,8 @@ use std::{
 
 const FILE_CARGO_TOML: &str = "Cargo.toml";
 const FILE_PACKAGE_JSON: &str = "package.json";
+const FILE_UV_LOCK: &str = "uv.lock";
+const FILE_PYPROJECT_TOML: &str = "pyproject.toml";
 const FILE_ASSEMBLY_CSHARP: &str = "Assembly-CSharp.csproj";
 const FILE_STACK_HASKELL: &str = "stack.yaml";
 const FILE_CABAL_HASKELL: &str = "cabal.project";
@@ -402,6 +404,7 @@ impl Iterator for ProjectIter {
                 let p_type = match file_name {
                     FILE_CARGO_TOML => Some(ProjectType::Cargo),
                     FILE_PACKAGE_JSON => Some(ProjectType::Node),
+                    FILE_UV_LOCK | FILE_PYPROJECT_TOML => Some(ProjectType::Python),
                     FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
                     FILE_STACK_HASKELL => Some(ProjectType::Stack),
                     FILE_CABAL_HASKELL => Some(ProjectType::Cabal),
@@ -541,6 +544,13 @@ pub fn clean(project_path: &str) -> Result<(), Box<dyn error::Error>> {
             let p_type = match file_name.as_str() {
                 FILE_CARGO_TOML => Some(ProjectType::Cargo),
                 FILE_PACKAGE_JSON => Some(ProjectType::Node),
+                FILE_UV_LOCK | FILE_PYPROJECT_TOML
+                    if dir_entry
+                        .file_type()
+                        .is_ok_and(|file_type| file_type.is_file()) =>
+                {
+                    Some(ProjectType::Python)
+                }
                 FILE_ASSEMBLY_CSHARP => Some(ProjectType::Unity),
                 FILE_STACK_HASKELL => Some(ProjectType::Stack),
                 FILE_CABAL_HASKELL => Some(ProjectType::Cabal),

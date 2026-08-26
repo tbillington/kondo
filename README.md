@@ -46,6 +46,7 @@ Excellent if
 <p align="center">
 <a href="https://developer.hashicorp.com/terraform">Terraform</a>
 <a href="https://reactnative.dev/">React Native</a>
+<a href="https://docs.astral.sh/uv/">uv</a> (Python)
 </p>
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
@@ -173,6 +174,8 @@ kondo -o3M # shorthand
 ```
 
 More options such as quiet mode, following symlinks, and filesystem restriction are viewable with `kondo --help`.
+
+Python projects are detected by a `.py` file, `uv.lock`, or `pyproject.toml`. Kondo removes Python caches at the detected project root while preserving `.venv`.
 
 ## Building/Development
 
