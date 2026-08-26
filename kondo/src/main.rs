@@ -244,7 +244,7 @@ fn interactive_prompt(
         if quiet == 0 {
             println!(
                 "{} {} project {last_modified}",
-                &project.name(),
+                project.name(),
                 project.type_name(),
             );
             for (dir, size) in artifact_dirs {
