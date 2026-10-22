@@ -172,6 +172,13 @@ kondo --older 3M # only projects with last modified greater than 3 months
 kondo -o3M # shorthand
 ```
 
+Projects can be filtered by type with `--only` or `--skip`, which take a comma separated list.
+
+```sh
+kondo --only cargo,node # only clean Cargo and Node projects
+kondo --skip python # clean everything except Python projects
+```
+
 More options such as quiet mode, following symlinks, and filesystem restriction are viewable with `kondo --help`.
 
 ## Building/Development

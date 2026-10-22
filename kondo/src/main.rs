@@ -8,11 +8,15 @@ use std::{
     sync::mpsc::{Receiver, Sender, SyncSender},
 };
 
-use clap::{Command, CommandFactory, Parser};
+use clap::{
+    builder::{PossibleValuesParser, TypedValueParser},
+    Command, CommandFactory, Parser,
+};
 use clap_complete::{generate, Generator, Shell};
 
 use kondo_lib::{
-    dir_size, path_canonicalise, pretty_size, print_elapsed, scan, Project, ScanOptions,
+    dir_size, path_canonicalise, pretty_size, print_elapsed, scan, Project, ProjectFilter,
+    ProjectType, ScanOptions,
 };
 
 // Below needs updating every time a new project type is added!
@@ -29,6 +33,14 @@ struct Opt {
     /// Directories to ignore. Will also prevent recursive traversal within.
     #[arg(short = 'I', long)]
     ignored_dirs: Vec<PathBuf>,
+
+    /// Only clean projects of these types (comma separated).
+    #[arg(long, value_delimiter = ',', value_parser = project_type_parser(), conflicts_with = "skip")]
+    only: Vec<ProjectType>,
+
+    /// Don't clean projects of these types (comma separated).
+    #[arg(long, value_delimiter = ',', value_parser = project_type_parser())]
+    skip: Vec<ProjectType>,
 
     /// Quiet mode. Won't output to the terminal. -qq prevents all output.
     #[arg(short, long, action = clap::ArgAction::Count, value_parser = clap::value_parser!(u8).range(0..3))]
@@ -65,6 +77,15 @@ struct Opt {
     /// Accept one-letter input without waiting for the Enter key.
     #[arg(long)]
     single_key: bool,
+}
+
+fn project_type_parser() -> impl TypedValueParser<Value = ProjectType> {
+    PossibleValuesParser::new(ProjectType::ALL.map(|t| t.id())).map(|id| {
+        ProjectType::ALL
+            .into_iter()
+            .find(|t| t.id() == id)
+            .expect("possible values are project type ids")
+    })
 }
 
 fn prepare_directories(dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>, Box<dyn Error>> {
@@ -347,6 +368,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let scan_options: ScanOptions = ScanOptions {
         follow_symlinks: opt.follow_symlinks,
         same_file_system: opt.same_filesystem,
+        project_filter: if !opt.only.is_empty() {
+            ProjectFilter::Only(std::mem::take(&mut opt.only))
+        } else if !opt.skip.is_empty() {
+            ProjectFilter::Skip(std::mem::take(&mut opt.skip))
+        } else {
+            ProjectFilter::All
+        },
     };
 
     let (proj_discover_send, proj_discover_recv) = std::sync::mpsc::sync_channel::<DiscoverData>(5);

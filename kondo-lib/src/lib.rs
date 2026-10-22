@@ -118,7 +118,7 @@ const PROJECT_TURBOREPO_NAME: &str = "Turborepo";
 const PROJECT_TERRAFORM_NAME: &str = "Terraform";
 const PROJECT_COCOAPODS_NAME: &str = "CocoaPods";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectType {
     Cargo,
     Node,
@@ -144,6 +144,82 @@ pub enum ProjectType {
     Turborepo,
     Terraform,
     Cocoapods,
+}
+
+impl ProjectType {
+    pub const ALL: [ProjectType; 23] = [
+        ProjectType::Cargo,
+        ProjectType::Node,
+        ProjectType::Unity,
+        ProjectType::Stack,
+        ProjectType::Cabal,
+        ProjectType::SBT,
+        ProjectType::Maven,
+        ProjectType::Gradle,
+        ProjectType::CMake,
+        ProjectType::Unreal,
+        ProjectType::Jupyter,
+        ProjectType::Python,
+        ProjectType::Pixi,
+        ProjectType::Composer,
+        ProjectType::Pub,
+        ProjectType::Elixir,
+        ProjectType::Swift,
+        ProjectType::Zig,
+        ProjectType::Godot4,
+        ProjectType::Dotnet,
+        ProjectType::Turborepo,
+        ProjectType::Terraform,
+        ProjectType::Cocoapods,
+    ];
+
+    /// Short lowercase identifier, suitable for command line arguments.
+    pub fn id(&self) -> &'static str {
+        match self {
+            ProjectType::Cargo => "cargo",
+            ProjectType::Node => "node",
+            ProjectType::Unity => "unity",
+            ProjectType::Stack => "stack",
+            ProjectType::Cabal => "cabal",
+            ProjectType::SBT => "sbt",
+            ProjectType::Maven => "maven",
+            ProjectType::Gradle => "gradle",
+            ProjectType::CMake => "cmake",
+            ProjectType::Unreal => "unreal",
+            ProjectType::Jupyter => "jupyter",
+            ProjectType::Python => "python",
+            ProjectType::Pixi => "pixi",
+            ProjectType::Composer => "composer",
+            ProjectType::Pub => "pub",
+            ProjectType::Elixir => "elixir",
+            ProjectType::Swift => "swift",
+            ProjectType::Zig => "zig",
+            ProjectType::Godot4 => "godot4",
+            ProjectType::Dotnet => "dotnet",
+            ProjectType::Turborepo => "turborepo",
+            ProjectType::Terraform => "terraform",
+            ProjectType::Cocoapods => "cocoapods",
+        }
+    }
+}
+
+/// Restricts which project types a scan reports.
+#[derive(Debug, Clone, Default)]
+pub enum ProjectFilter {
+    #[default]
+    All,
+    Only(Vec<ProjectType>),
+    Skip(Vec<ProjectType>),
+}
+
+impl ProjectFilter {
+    pub fn allows(&self, project_type: ProjectType) -> bool {
+        match self {
+            ProjectFilter::All => true,
+            ProjectFilter::Only(types) => types.contains(&project_type),
+            ProjectFilter::Skip(types) => !types.contains(&project_type),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -360,6 +436,7 @@ fn is_hidden(entry: &walkdir::DirEntry) -> bool {
 
 struct ProjectIter {
     it: walkdir::IntoIter,
+    project_filter: ProjectFilter,
 }
 
 pub enum Red {
@@ -388,6 +465,8 @@ impl Iterator for ProjectIter {
                 Err(e) => return Some(Err(Red::IOError(e))),
                 Ok(rd) => rd,
             };
+            // a directory can match several project types, report the first one the filter allows
+            let mut is_project = false;
             // intentionally ignoring errors while iterating the ReadDir
             // can't return them because we'll lose the context of where we are
             for dir_entry in rd
@@ -444,12 +523,19 @@ impl Iterator for ProjectIter {
                     _ => None,
                 };
                 if let Some(project_type) = p_type {
-                    self.it.skip_current_dir();
-                    return Some(Ok(Project {
-                        project_type,
-                        path: entry.path().to_path_buf(),
-                    }));
+                    is_project = true;
+                    if self.project_filter.allows(project_type) {
+                        self.it.skip_current_dir();
+                        return Some(Ok(Project {
+                            project_type,
+                            path: entry.path().to_path_buf(),
+                        }));
+                    }
                 }
+            }
+            // don't descend into filtered out projects, they may contain huge artifact dirs
+            if is_project {
+                self.it.skip_current_dir();
             }
         }
     }
@@ -483,6 +569,7 @@ fn is_react_native_project(path: &Path) -> bool {
 pub struct ScanOptions {
     pub follow_symlinks: bool,
     pub same_file_system: bool,
+    pub project_filter: ProjectFilter,
 }
 
 fn build_walkdir_iter<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> ProjectIter {
@@ -491,6 +578,7 @@ fn build_walkdir_iter<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> 
             .follow_links(options.follow_symlinks)
             .same_file_system(options.same_file_system)
             .into_iter(),
+        project_filter: options.project_filter.clone(),
     }
 }
 
