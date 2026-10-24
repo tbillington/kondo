@@ -46,6 +46,7 @@ Excellent if
 <p align="center">
 <a href="https://developer.hashicorp.com/terraform">Terraform</a>
 <a href="https://reactnative.dev/">React Native</a>
+<a href="https://platformio.org/">PlatformIO</a> (C, C++)
 </p>
 
 <img width="972" alt="kondo cli cleaning projects" src="https://user-images.githubusercontent.com/2771466/222950622-475bc6cc-7b91-47c2-86b2-5948bee4fe8e.png">
