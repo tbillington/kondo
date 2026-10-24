@@ -172,6 +172,14 @@ kondo --older 3M # only projects with last modified greater than 3 months
 kondo -o3M # shorthand
 ```
 
+Linked git worktrees are cleaned too. When `kondo` finds a git repository it reads the worktrees registered in its `.git/worktrees`, so checkouts in hidden directories such as `.claude/worktrees/` are found like any other project. Worktrees outside the directories you supplied and worktrees locked with `git worktree lock` are skipped. When running unattended with `--all`, pair it with `--older` so worktrees that tools or agents are using right now aren't cleaned.
+
+```sh
+kondo --dry-run ~/code # list what would be cleaned, including linked worktrees
+kondo --all --older 7d ~/code # clean without prompting, skipping anything touched this week
+kondo --no-worktrees ~/code # don't look for linked worktrees
+```
+
 More options such as quiet mode, following symlinks, and filesystem restriction are viewable with `kondo --help`.
 
 ## Building/Development

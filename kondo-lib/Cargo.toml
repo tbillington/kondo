@@ -11,3 +11,6 @@ license = "MIT"
 [dependencies]
 ignore = "0.4.25"
 walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"

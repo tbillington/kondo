@@ -1,8 +1,9 @@
 use std::{
     borrow::Cow,
+    collections::{HashSet, VecDeque},
     error::{self, Error},
     fs,
-    path::{self, Path},
+    path::{self, Path, PathBuf},
     time::SystemTime,
 };
 
@@ -358,8 +359,132 @@ fn is_hidden(entry: &walkdir::DirEntry) -> bool {
     entry.file_name().to_string_lossy().starts_with('.')
 }
 
+/// Roots of the linked worktrees registered in `git_dir/worktrees`.
+///
+/// Locked worktrees, worktrees whose directory no longer exists and entries
+/// that can't be read are skipped.
+fn linked_worktrees(git_dir: &Path) -> Vec<PathBuf> {
+    let Ok(rd) = git_dir.join("worktrees").read_dir() else {
+        return Vec::new();
+    };
+    rd.filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|meta| !meta.join("locked").exists())
+        .filter_map(|meta| {
+            let raw = fs::read_to_string(meta.join("gitdir")).ok()?;
+            // an absolute gitdir replaces `meta`, a relative one is resolved against it
+            let dotgit = meta.join(raw.trim());
+            if dotgit.file_name()? != ".git" {
+                return None;
+            }
+            let root = dotgit.parent()?.to_path_buf();
+            root.is_dir().then_some(root)
+        })
+        .collect()
+}
+
+/// Whether `dir`, which has a `.git` file, is a linked worktree that git has locked.
+fn is_locked_worktree(dir: &Path) -> bool {
+    let Ok(dotgit) = fs::read_to_string(dir.join(".git")) else {
+        return false;
+    };
+    let Some(git_dir) = dotgit.trim().strip_prefix("gitdir:") else {
+        return false;
+    };
+    dir.join(git_dir.trim()).join("locked").exists()
+}
+
+#[cfg(unix)]
+fn device(path: &Path) -> Option<u64> {
+    use std::os::unix::fs::MetadataExt;
+    fs::metadata(path).ok().map(|m| m.dev())
+}
+
+#[cfg(not(unix))]
+fn device(_path: &Path) -> Option<u64> {
+    None
+}
+
+fn walk(path: &Path, options: &ScanOptions) -> walkdir::IntoIter {
+    walkdir::WalkDir::new(path)
+        .follow_links(options.follow_symlinks)
+        .same_file_system(options.same_file_system)
+        .into_iter()
+}
+
 struct ProjectIter {
     it: walkdir::IntoIter,
+    options: ScanOptions,
+    /// The scan root as given by the caller, used to build the paths of worktree walks.
+    display_root: PathBuf,
+    /// Canonical scan root, worktrees outside of it are never walked.
+    root: PathBuf,
+    root_dev: Option<u64>,
+    /// Whether the current walk started from a queued worktree root.
+    queued_walk: bool,
+    pending: VecDeque<PathBuf>,
+    queued: HashSet<PathBuf>,
+    emitted: HashSet<PathBuf>,
+}
+
+impl ProjectIter {
+    fn new(path: &Path, options: &ScanOptions) -> Self {
+        let display_root = path.to_path_buf();
+        let root = if options.worktrees {
+            fs::canonicalize(path).unwrap_or_else(|_| display_root.clone())
+        } else {
+            display_root.clone()
+        };
+        let root_dev = if options.worktrees && options.same_file_system {
+            device(&root)
+        } else {
+            None
+        };
+        Self {
+            it: walk(path, options),
+            options: options.clone(),
+            queued: HashSet::from([root.clone()]),
+            display_root,
+            root,
+            root_dev,
+            queued_walk: false,
+            pending: VecDeque::new(),
+            emitted: HashSet::new(),
+        }
+    }
+
+    fn queue_worktrees(&mut self, git_dir: &Path) {
+        for worktree in linked_worktrees(git_dir) {
+            let Ok(canonical) = fs::canonicalize(&worktree) else {
+                continue;
+            };
+            let Ok(relative) = canonical.strip_prefix(&self.root) else {
+                continue;
+            };
+            if self.root_dev.is_some() && device(&canonical) != self.root_dev {
+                continue;
+            }
+            let walk_root = self.display_root.join(relative);
+            if self.queued.insert(canonical) {
+                self.pending.push_back(walk_root);
+            }
+        }
+    }
+
+    /// Returns false if a project at `path` has already been returned by this scan.
+    fn first_emit(&mut self, path: &Path) -> bool {
+        if !self.options.worktrees {
+            return true;
+        }
+        // Without following symlinks every walked path is built from real directory names
+        // under `display_root`, so equal paths are equal directories.
+        let key = if self.options.follow_symlinks {
+            fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+        } else {
+            path.to_path_buf()
+        };
+        self.emitted.insert(key)
+    }
 }
 
 pub enum Red {
@@ -373,14 +498,19 @@ impl Iterator for ProjectIter {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let entry: walkdir::DirEntry = match self.it.next() {
-                None => return None,
+                None => {
+                    let next_root = self.pending.pop_front()?;
+                    self.it = walk(&next_root, &self.options);
+                    self.queued_walk = true;
+                    continue;
+                }
                 Some(Err(e)) => return Some(Err(Red::WalkdirError(e))),
                 Some(Ok(entry)) => entry,
             };
             if !entry.file_type().is_dir() {
                 continue;
             }
-            if is_hidden(&entry) {
+            if is_hidden(&entry) && !(self.queued_walk && entry.depth() == 0) {
                 self.it.skip_current_dir();
                 continue;
             }
@@ -390,10 +520,28 @@ impl Iterator for ProjectIter {
             };
             // intentionally ignoring errors while iterating the ReadDir
             // can't return them because we'll lose the context of where we are
-            for dir_entry in rd
+            let listing: Vec<_> = rd
                 .filter_map(|rd| rd.ok())
-                .filter(|de| de.file_type().map(|ft| ft.is_file()).unwrap_or(false))
-                .map(|de| de.file_name())
+                .filter_map(|de| Some((de.file_name(), de.file_type().ok()?)))
+                .collect();
+            if self.options.worktrees {
+                match listing.iter().find(|(name, _)| name == ".git") {
+                    Some((_, file_type)) if file_type.is_dir() => {
+                        self.queue_worktrees(&entry.path().join(".git"));
+                    }
+                    Some((_, file_type))
+                        if file_type.is_file() && is_locked_worktree(entry.path()) =>
+                    {
+                        self.it.skip_current_dir();
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+            for dir_entry in listing
+                .iter()
+                .filter(|(_, file_type)| file_type.is_file())
+                .map(|(name, _)| name)
             {
                 let file_name = match dir_entry.to_str() {
                     None => continue,
@@ -445,6 +593,9 @@ impl Iterator for ProjectIter {
                 };
                 if let Some(project_type) = p_type {
                     self.it.skip_current_dir();
+                    if !self.first_emit(entry.path()) {
+                        break;
+                    }
                     return Some(Ok(Project {
                         project_type,
                         path: entry.path().to_path_buf(),
@@ -483,28 +634,22 @@ fn is_react_native_project(path: &Path) -> bool {
 pub struct ScanOptions {
     pub follow_symlinks: bool,
     pub same_file_system: bool,
-}
-
-fn build_walkdir_iter<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> ProjectIter {
-    ProjectIter {
-        it: walkdir::WalkDir::new(path)
-            .follow_links(options.follow_symlinks)
-            .same_file_system(options.same_file_system)
-            .into_iter(),
-    }
+    /// Also scan the linked git worktrees registered by repositories found under the scan
+    /// root, even when they live in hidden directories or inside another project.
+    /// Locked worktrees are skipped, wherever they are found.
+    pub worktrees: bool,
 }
 
 pub fn scan<P: AsRef<path::Path>>(
     path: &P,
     options: &ScanOptions,
 ) -> impl Iterator<Item = Result<Project, Red>> {
-    build_walkdir_iter(path, options)
+    ProjectIter::new(path.as_ref(), options)
 }
 
 // TODO does this need to exist as is??
 pub fn dir_size<P: AsRef<path::Path>>(path: &P, options: &ScanOptions) -> u64 {
-    build_walkdir_iter(path, options)
-        .it
+    walk(path.as_ref(), options)
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter_map(|e| e.metadata().ok())
@@ -596,7 +741,9 @@ pub fn path_canonicalise(
 
 #[cfg(test)]
 mod tests {
-    use super::print_elapsed;
+    use std::time::Duration;
+
+    use super::*;
 
     #[test]
     fn elapsed() {
@@ -635,5 +782,360 @@ mod tests {
         assert_eq!(print_elapsed(2419200 * 12), "12 months ago");
         assert_eq!(print_elapsed(2419200 * 25), "25 months ago");
         assert_eq!(print_elapsed(2419200 * 48), "4 years ago");
+    }
+
+    /// A scan root whose name isn't hidden, unlike `tempfile::tempdir()`.
+    fn tempdir() -> tempfile::TempDir {
+        tempfile::Builder::new().prefix("kondo").tempdir().unwrap()
+    }
+
+    fn options(worktrees: bool) -> ScanOptions {
+        ScanOptions {
+            follow_symlinks: false,
+            same_file_system: false,
+            worktrees,
+        }
+    }
+
+    fn scan_paths(root: &Path, options: &ScanOptions) -> Vec<PathBuf> {
+        let mut paths: Vec<PathBuf> = scan(&root, options)
+            .map(|result| match result {
+                Ok(project) => project.path,
+                Err(Red::IOError(e)) => panic!("unexpected io error: {e}"),
+                Err(Red::WalkdirError(e)) => panic!("unexpected walkdir error: {e}"),
+            })
+            .collect();
+        paths.sort();
+        paths
+    }
+
+    fn write(path: &Path, contents: &str) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, contents).unwrap();
+    }
+
+    fn cargo_project(dir: &Path) {
+        write(&dir.join("Cargo.toml"), "[package]\n");
+        write(&dir.join("target/debug/out"), "artifact");
+    }
+
+    fn repo(dir: &Path) {
+        cargo_project(dir);
+        fs::create_dir_all(dir.join(".git/objects")).unwrap();
+    }
+
+    /// Registers `worktree` in `repo` with `gitdir` contents, as `git worktree add` does.
+    fn register(repo: &Path, id: &str, gitdir: &str) -> PathBuf {
+        let meta = repo.join(".git/worktrees").join(id);
+        write(&meta.join("gitdir"), &format!("{gitdir}\n"));
+        meta
+    }
+
+    fn linked_worktree(repo: &Path, id: &str, worktree: &Path) -> PathBuf {
+        cargo_project(worktree);
+        let meta = repo.join(".git/worktrees").join(id);
+        write(
+            &worktree.join(".git"),
+            &format!("gitdir: {}\n", meta.display()),
+        );
+        register(repo, id, &worktree.join(".git").to_string_lossy())
+    }
+
+    #[test]
+    fn worktree_in_hidden_dir_inside_project() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &w1);
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir, w1]);
+    }
+
+    #[test]
+    fn worktree_with_relative_gitdir() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        cargo_project(&w1);
+        register(&repo_dir, "w1", "../../../.claude/worktrees/w1/.git");
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir, w1]);
+    }
+
+    #[test]
+    fn worktree_whose_dir_was_deleted() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &w1);
+        fs::remove_dir_all(&w1).unwrap();
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir]);
+    }
+
+    #[test]
+    fn worktree_outside_scan_root() {
+        let tmp = tempdir();
+        let root = tmp.path().join("root");
+        let repo_dir = root.join("repo");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &tmp.path().join("outside/w1"));
+
+        assert_eq!(scan_paths(&root, &options(true)), [repo_dir]);
+    }
+
+    #[test]
+    fn locked_worktree() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        repo(&repo_dir);
+        let meta = linked_worktree(&repo_dir, "w1", &repo_dir.join(".claude/worktrees/w1"));
+        write(&meta.join("locked"), "claude agent agent-1234 (pid 42)");
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir]);
+    }
+
+    #[test]
+    fn locked_worktree_reached_by_walk() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let feature = tmp.path().join("repo-feature");
+        let nested = tmp.path().join("repo-nested");
+        repo(&repo_dir);
+        let meta = linked_worktree(&repo_dir, "repo-feature", &feature);
+        write(&meta.join("locked"), "");
+        let meta = register(&repo_dir, "repo-nested", "../../../../repo-nested/.git");
+        write(&meta.join("locked"), "");
+        cargo_project(&nested.join("crates/a"));
+        write(
+            &nested.join(".git"),
+            "gitdir: ../repo/.git/worktrees/repo-nested\n",
+        );
+
+        assert_eq!(
+            scan_paths(tmp.path(), &options(false)),
+            [repo_dir.clone(), feature, nested.join("crates/a")]
+        );
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir]);
+    }
+
+    #[test]
+    fn sibling_worktree_reached_by_walk() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let feature = tmp.path().join("repo-feature");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "repo-feature", &feature);
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir, feature]);
+    }
+
+    #[test]
+    fn worktrees_disabled() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &repo_dir.join(".claude/worktrees/w1"));
+
+        assert_eq!(scan_paths(tmp.path(), &options(false)), [repo_dir]);
+    }
+
+    #[test]
+    fn hidden_worktree_root_is_scanned_but_not_hidden_dirs_below_it() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let worktree = repo_dir.join(".tmp-w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "tmp-w1", &worktree);
+        cargo_project(&worktree.join("crates/a"));
+        fs::remove_file(worktree.join("Cargo.toml")).unwrap();
+        cargo_project(&worktree.join(".hidden/b"));
+
+        assert_eq!(
+            scan_paths(tmp.path(), &options(true)),
+            [repo_dir, worktree.join("crates/a")]
+        );
+    }
+
+    #[test]
+    fn hidden_worktree_root_with_marker() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let worktree = repo_dir.join(".tmp-w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "tmp-w1", &worktree);
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir, worktree]);
+    }
+
+    #[test]
+    fn two_registrations_of_the_same_worktree() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &w1);
+        register(&repo_dir, "w1-again", "../../../.claude/worktrees/w1/.git");
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir, w1]);
+    }
+
+    #[test]
+    fn registration_pointing_back_at_the_repo() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        repo(&repo_dir);
+        register(&repo_dir, "self", &repo_dir.join(".git").to_string_lossy());
+        register(
+            &repo_dir,
+            "root",
+            &tmp.path().join(".git").to_string_lossy(),
+        );
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir]);
+    }
+
+    #[test]
+    fn worktrees_of_repo_without_marker() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".worktrees/w1");
+        fs::create_dir_all(repo_dir.join(".git")).unwrap();
+        linked_worktree(&repo_dir, "w1", &w1);
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [w1]);
+    }
+
+    #[test]
+    fn worktree_in_dir_with_dot_git_file_is_not_read() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        cargo_project(&repo_dir);
+        write(&repo_dir.join(".git"), "gitdir: ../elsewhere/.git\n");
+
+        assert_eq!(scan_paths(tmp.path(), &options(true)), [repo_dir]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn worktree_also_reached_through_followed_symlink() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &w1);
+        std::os::unix::fs::symlink(&w1, tmp.path().join("link")).unwrap();
+
+        let options = ScanOptions {
+            follow_symlinks: true,
+            ..options(true)
+        };
+        let paths = scan_paths(tmp.path(), &options);
+        assert_eq!(paths.len(), 2, "{paths:?}");
+        assert!(paths.contains(&repo_dir));
+    }
+
+    #[test]
+    fn linked_worktrees_reads_registry() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let git_dir = repo_dir.join(".git");
+        fs::create_dir_all(&git_dir).unwrap();
+        let w1 = tmp.path().join("w1");
+        fs::create_dir_all(&w1).unwrap();
+        fs::create_dir_all(tmp.path().join("not-dotgit")).unwrap();
+
+        register(
+            &repo_dir,
+            "w1",
+            &format!("  {}  ", w1.join(".git").display()),
+        );
+        register(&repo_dir, "bad-name", "../../../../not-dotgit/gitdir");
+        register(&repo_dir, "empty", "");
+        register(
+            &repo_dir,
+            "gone",
+            &tmp.path().join("gone/.git").to_string_lossy(),
+        );
+        fs::create_dir_all(git_dir.join("worktrees/no-gitdir")).unwrap();
+        write(&git_dir.join("worktrees/stray-file"), "");
+        write(&git_dir.join("worktrees/not-utf8/gitdir"), "");
+        fs::write(git_dir.join("worktrees/not-utf8/gitdir"), [0xff, 0xfe]).unwrap();
+
+        assert_eq!(linked_worktrees(&git_dir), [w1]);
+        assert!(linked_worktrees(&tmp.path().join("missing")).is_empty());
+    }
+
+    fn set_modified(path: &Path, time: SystemTime) {
+        fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+    }
+
+    fn project_at(root: &Path, path: &Path) -> Project {
+        scan(&root, &options(true))
+            .filter_map(Result::ok)
+            .find(|p| p.path == path)
+            .unwrap()
+    }
+
+    fn in_a_month() -> SystemTime {
+        SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 30)
+    }
+
+    #[test]
+    fn worktree_last_modified_ignores_gitignored_artifacts() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "w1", &w1);
+        write(&w1.join(".gitignore"), "target/\n");
+        let future = in_a_month();
+        set_modified(&w1.join("target/debug/out"), future);
+
+        let project = project_at(tmp.path(), &w1);
+        assert!(project.last_modified(&options(true)).unwrap() < future);
+    }
+
+    #[test]
+    fn worktree_dot_git_file_makes_it_a_repo_root_for_last_modified() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let feature = tmp.path().join("repo-feature");
+        repo(&repo_dir);
+        linked_worktree(&repo_dir, "repo-feature", &feature);
+        write(&feature.join(".gitignore"), "target/\n");
+        let future = in_a_month();
+        set_modified(&feature.join("target/debug/out"), future);
+
+        let project = project_at(tmp.path(), &feature);
+        assert!(project.last_modified(&options(true)).unwrap() < future);
+
+        // outside of a git repo the gitignore is not applied
+        fs::remove_file(feature.join(".git")).unwrap();
+        assert_eq!(project.last_modified(&options(true)).unwrap(), future);
+    }
+
+    #[test]
+    fn worktree_last_modified_is_not_hidden_by_parent_repo_gitignore() {
+        let tmp = tempdir();
+        let repo_dir = tmp.path().join("repo");
+        let w1 = repo_dir.join(".claude/worktrees/w1");
+        repo(&repo_dir);
+        write(&repo_dir.join(".gitignore"), ".claude/\nsrc/\n");
+        linked_worktree(&repo_dir, "w1", &w1);
+        write(&w1.join("src/main.rs"), "fn main() {}\n");
+        let future = in_a_month();
+        set_modified(&w1.join("src/main.rs"), future);
+
+        let project = project_at(tmp.path(), &w1);
+        assert_eq!(project.last_modified(&options(true)).unwrap(), future);
     }
 }
