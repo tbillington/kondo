@@ -192,3 +192,4 @@ The output binaries will be located in `target/debug/` or `target/release/` per 
 - [Cargo Sweep](https://github.com/holmgr/cargo-sweep)
 - [Cargo Wipe](https://github.com/mihai-dinculescu/cargo-wipe)
 - [cargo-clean-recursive](https://github.com/IgaguriMK/cargo-clean-recursive)
+- [Kruftle](https://github.com/dizitart/kruftle)
